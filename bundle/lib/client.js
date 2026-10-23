@@ -218,7 +218,7 @@ window.__ModuleLoader__.load({
     }
     function ThreadsPage() {
       const [state, setState] = useState(null)
-      const [tab, setTab] = useState('threads')
+      const [tab, setTab] = useState(() => { try { return localStorage.getItem('dsh-projects.tab') || 'threads' } catch { return 'threads' } })
       const load = () => api('/dsh-projects/state').then((s) => { if (s && !s.error) setState(s) }).catch(() => {})
       useLiveState(setState, load)
       const cur = state && state.current
@@ -304,6 +304,51 @@ window.__ModuleLoader__.load({
           section('RECENTS', recents.length ? recents.map((x) => row((x.cwd || '').split('/').pop() || x.id.slice(0, 12), (x.running ? '运行中 · ' : '') + x.id.slice(0, 16), false, () => openSession(x.id))) : h('div', { style: { fontSize: 11.5, color: M.color, padding: '6px 8px' } }, '暂无个人会话（项目会话已收纳到项目中）'))),
         h('div', { style: { padding: '8px 8px 0', fontSize: 10.5, color: M.color } }, '项目会话不出现在 Recents'))
     }
+    function OverviewMenu() {
+      const [open, setOpen] = useState(false)
+      const item = (label, onClick) => h('div', { onClick, style: { padding: '7px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5 } }, label)
+      const goto = (tab) => { try { localStorage.setItem('dsh-projects.tab', tab) } catch {} if (layoutService) layoutService.selectPanel('threads'); setOpen(false) }
+      return h('div', { style: { position: 'relative', display: 'inline-flex' } },
+        h('button', { style: btn(false), onClick: () => setOpen(!open) }, 'Overview ⌄'),
+        open ? h('div', { style: { position: 'absolute', right: 0, top: 34, width: 172, zIndex: 70, background: 'var(--dsw-alias-bg-overlay, #fff)', border: B, borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.18)', padding: 6 } },
+          item('Overview', () => { if (layoutService) layoutService.selectPanel('projects'); setOpen(false) }),
+          item('Threads', () => goto('threads')),
+          item('Library', () => goto('library')),
+          item('Scheduled', () => goto('scheduled'))) : null)
+    }
+    function RightPanel() {
+      const [open, setOpen] = useState(true)
+      const [tab, setTab] = useState('threads')
+      const [state, setState] = useState(null)
+      useLiveState(setState, () => api('/dsh-projects/state').then((s) => { if (s && !s.error) setState(s) }).catch(() => {}))
+      const cur = state && state.current
+      const threads = (cur && cur.threads) || []
+      const section = (title, rows) => rows.length ? h('div', { style: { marginTop: 10 } },
+        h('div', { style: { fontSize: 10.5, fontWeight: 650, letterSpacing: '.4px', color: M.color, padding: '4px 6px' } }, title + ' ' + rows.length),
+        rows.map((t) => h('div', { key: t.id, onClick: () => { try { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId: t.id })) } catch {} location.reload() }, style: { display: 'flex', alignItems: 'center', gap: 7, padding: '7px 6px', borderRadius: 8, cursor: 'pointer' } },
+          h('span', { style: { width: 6, height: 6, borderRadius: 99, flex: 'none', background: t.status === 'done' ? '#3fb950' : t.status === 'resolved' ? '#8b949e' : ['failed', 'waiting'].includes(t.status) ? '#d29922' : '#4d8dff' } }),
+          h('div', { style: { minWidth: 0, flex: 1 } },
+            h('div', { style: { fontSize: 12, fontWeight: 550, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, t.title),
+            h('div', { style: { fontSize: 10, color: M.color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, (t.lastReport ? 'Blocked/汇报 · ' : '') + t.status + (t.branch ? ' · ' + t.branch : '')))))) : null
+      const waiting = threads.filter((t) => ['waiting', 'failed'].includes(t.status))
+      const resolved = threads.filter((t) => t.status === 'resolved')
+      const idle = threads.filter((t) => !waiting.includes(t) && !resolved.includes(t))
+      if (!open) return h('div', { style: { position: 'fixed', right: 14, bottom: 90, zIndex: 70, pointerEvents: 'auto' } }, h('button', { style: { ...btn(true), padding: '6px 10px' }, onClick: () => setOpen(true) }, 'Threads ' + threads.length))
+      return h('div', { style: { position: 'fixed', right: 16, top: 64, bottom: 16, width: 322, zIndex: 55, pointerEvents: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--dsw-alias-bg-layer-1, #fff)', border: B, borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,.18)', overflow: 'hidden', fontFamily: 'var(--dsw-font-family, -apple-system, sans-serif)' } },
+        h('div', { style: { display: 'flex', alignItems: 'center', padding: '10px 12px 6px' } },
+          h('div', { style: { fontSize: 14, fontWeight: 650, flex: 1 } }, 'Threads'),
+          h('button', { style: { ...btn(false), padding: '1px 7px' }, onClick: () => setOpen(false) }, '×')),
+        h('div', { style: { display: 'flex', gap: 2, borderBottom: B, padding: '0 8px' } },
+          ['threads', 'library', 'scheduled'].map((k) => h('button', { key: k, onClick: () => setTab(k), style: { padding: '5px 8px', border: 0, borderBottom: '2px solid ' + (tab === k ? 'var(--dsw-alias-brand-primary, #4d6bfe)' : 'transparent'), background: 'transparent', color: tab === k ? 'var(--dsw-alias-label-primary)' : M.color, cursor: 'pointer', fontSize: 11.5, textTransform: 'capitalize' } }, k))),
+        h('div', { style: { overflow: 'auto', flex: 1, padding: '2px 10px 12px' } },
+          !cur ? h('div', { style: { fontSize: 11.5, color: M.color, padding: 8 } }, '加载项目…') :
+            tab === 'threads' ? h('div', null, section('Waiting on you', waiting), section('Idle', idle), section('Resolved', resolved), threads.length === 0 ? h('div', { style: { fontSize: 11.5, color: M.color, padding: 8 } }, '还没有线程') : null)
+            : tab === 'library' ? h('div', null,
+                h('div', { style: { fontSize: 11, color: M.color, padding: '8px 6px' } }, 'Library · ' + cur.libraryCount + ' 文件'),
+                (cur.library.folders || []).map((f) => h('div', { key: f, style: { fontSize: 12, padding: '4px 6px' } }, '📁 ' + f)),
+                (cur.library.files || []).map((f) => h('div', { key: f, style: { fontSize: 11.5, color: M.color, padding: '3px 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '· ' + f)))
+            : h('div', null, h('div', { style: { fontSize: 11.5, color: M.color, padding: '10px 6px' } }, 'Scheduled 暂无定时任务'), h('div', { style: { fontSize: 10.5, color: M.color, padding: '0 6px' } }, '计划：每日站会、周报、自动收尾。'))))
+    }
     return {
       inject: ['slots'],
       apply(ctx) {
@@ -312,7 +357,9 @@ window.__ModuleLoader__.load({
         ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'projects' }, ProjectsPage))
         ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({ name: 'sidebar.workspaces' }, ProjectsSidebar))
         ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'threads' }, ThreadsPage))
+        ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({ name: 'conversation.session.header.actions', id: 'projects-overview', order: 30, label: 'Overview' }, OverviewMenu))
         ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({ name: 'conversation.session.header.actions', id: 'projects-threads', order: 40, label: 'Threads' }, ThreadsButton))
+        ctx.slots.inject('shell.overlay', () => ctx.slots.register({ name: 'shell.overlay', id: 'projects-right-panel', order: 50 }, RightPanel))
       },
     }
   },
