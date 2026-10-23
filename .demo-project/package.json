@@ -1,0 +1,8 @@
+{
+  "name": "demo-project",
+  "private": true,
+  "description": "DSH Projects 演示项目（Payments API 文档）",
+  "scripts": {
+    "lint": "node scripts/lint-docs.mjs"
+  }
+}
