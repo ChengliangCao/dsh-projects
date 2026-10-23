@@ -1,44 +1,83 @@
 # DSH Projects
 
-给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 带来 Claude Code Projects 式的工作方式：
+Claude Projects-style **multi-project coordinator + threads + library + project memory** for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH).
 
-- **Project**：长期项目容器（目标、指令、项目记忆、仓库、资料库）
-- **Coordinator**：项目对话里的协调者，只做路由 / 台账 / 汇总 / 记忆，不做重执行
-- **Threads**：每个任务一个独立会话，可并行、可 steer/停止/收尾/重开，状态与对话卡片同步
-- **Library**：项目级资料库，上传与线程产出统一入库，支持文件夹、移动、拖拽
-- **Project Memory**：自研骨架——`MEMORY.md` 索引 + 每事实文件 + git-repo 派生的项目 scope（语义检索 M2+ 可选 adapter）
+一个长期协调会话（Coordinator）负责和你对话、把任务派给独立线程；每个线程有自己的 Session 与 **git worktree/branch**，完成后向协调者汇报。项目级记忆与资料库（Library）在所有线程间共享。
 
-> 状态：**M0（可行性 spike）**。仓库目前是可运行的骨架，尚未发布可安装 bundle。
-> 设计与调研：[方案文档](docs/dsh-claude-projects-plan.md)、[GitHub 调研报告](docs/github-research-report.md)、[Memory 与 MVP 决策](docs/memory-route-and-mvp.md)、[M0 Spike 计划](docs/m0-spike-plan.md)、[ADR 0001](docs/decisions/0001-plugin-first-open-source.md)、[ADR 0002](docs/decisions/0002-self-built-project-memory.md)、[UI 原型](prototype/projects-ui.html)
+![Projects page](prototype/preview/10-final-projects.png)
 
-## 仓库结构（单仓多包，pnpm workspace）
+## Features
 
-```text
-packages/
-├── host-project/          # Project 域、线程台账、生命周期
-├── host-memory/           # 自研项目记忆骨架（dsh-project-memory）
-├── host-tools/            # project_* 模型工具
-├── client-ui-project/     # Projects 页面 + Threads/Library/Settings
-├── retrieval-adapter/     # M2+ opt-in 语义检索 adapter（占位）
-└── bundle/                # cordis.patch.yml + presets + icon
-docs/                      # 调研、方案、ADR、M0 计划
-prototype/                 # UI 高保真原型与截图
-```
+- **Multi-project** — registry, create/switch/pause/archive/delete, per-project memory/library/threads.
+- **Coordinator** — long-lived per-project session; policy prompt teaches it to dispatch threads, review status, resolve, and maintain memory.
+- **Threads** — top-level sessions created through `ctx.sessionController`; spawn/list/send/stop/resolve/report/propose tools.
+- **Isolation** — every thread runs in its own `git worktree` + branch (`thread/<id>-<slug>`); `project_thread_diff` shows its changes.
+- **Project memory** — `MEMORY.md` index + typed facts, injected into the system prompt; `memory_write/search/list/read`; per-project scopes.
+- **Library** — folders, upload (snapshot), move, read/list; host tools + workbench UI.
+- **Lifecycle** — attention counts (waiting/review/failed), 7-day auto-resolve, watcher on `turn/end`.
+- **Live state** — `GET /dsh-projects/events` SSE + client workbench.
 
-## 开发
+## Requirements
 
-```sh
-pnpm install
-pnpm typecheck
-pnpm build
-```
+- DSH `0.2.1-rc.2` (Web profile composition)
+- Node.js >= 22.19
+- pnpm 11
+- git (optional; enables per-thread worktrees)
 
-安装到 DSH profile（M0 之后再提供可安装 bundle）：
+## Install
 
 ```sh
-dsh plugin --profile <name> add ./packages/bundle
+git clone https://github.com/ChengliangCao/dsh-projects
+cd dsh-projects
+
+# point these at your local DSH runtime if not auto-detected
+export DSH_BIN="/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"
+export NODE_BIN="$(command -v node)"
+export PNPM_BIN="$(command -v pnpm)"
+
+./scripts/install.sh
 ```
 
-## 许可证
+Installer creates a DSH profile (default `projects`) from the web template, a sample project at `~/.dsh/projects-ui/hello-project`, packs and installs the bundle.
 
-Apache-2.0，见 [LICENSE](LICENSE)。第三方依赖与归属记录见 `NOTICE`（发布前补齐）。
+Start:
+
+```sh
+"$DSH_BIN" --profile projects --no-open --port 61990
+```
+
+Open the printed token URL. Then:
+
+1. Sidebar → **Projects** → create/switch projects; project directories must already exist (absolute path).
+2. Enter the project conversation and ask the Coordinator to spawn a thread, e.g. *"开一个线程：只读分析 src/queries.sql，产出 findings.md，完成后汇报"*.
+3. Use **Threads** for status/review/resolve; **Library** for documents; **Projects** for project home.
+
+## Repository layout
+
+```
+bundle/                 DSH bundle (host plugins + web client)
+  lib/projects.js       multi-project registry, HTTP/SSE routes
+  lib/project-tools.js  coordinator/thread/library tools, coordinator route
+  lib/memory.js         project memory injection + memory tools
+  lib/client.js         Projects / Threads / Library UI, custom sidebar
+  cordis.patch.yml      bundle patch (installer replaces __PROJECTS_HOME__)
+scripts/install.sh      clean-profile installer
+scripts/pack.sh         source release tarball
+examples/hello-project  sample project created by installer
+docs/                   design, decision records, release plan
+prototype/              clickable UI prototype + screenshots
+```
+
+## Known limitations
+
+- Conversation inline thread cards (`View thread` / `Sent to a thread`) are **not implemented**; thread cards are not rendered inside chat.
+- Native right-sidebar tabs (Threads/Library/Scheduled) are **not available**: the client exposes no tab-registration API; the same tabs live in the in-page workbench.
+- Project conversation sessions still appear in DSH's native session storage; the custom sidebar hides them from **Recents**, but other consumers may still see them.
+- Navigation between sessions uses `localStorage["dsh.sessions.current"]` + full reload (no internal router API).
+- Scheduled project tasks and token usage/limits are placeholders.
+- Worktree merge/cleanup UI is manual (`git worktree list/remove`).
+- Single-user, loopback web profile only; no mobile layout.
+
+## License
+
+Apache-2.0. Copyright Ignis. See `LICENSE` and `NOTICE`.
