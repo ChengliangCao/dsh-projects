@@ -115,6 +115,7 @@ export function apply(ctx, config = {}) {
   const tools = ctx.get('tools')
   if (!tools) return
   mkdirSync(baseDir, { recursive: true })
+  const projectsRoot = resolve(config.projectsRoot || join(baseDir, 'projects'))
   if (!readRegistry().projects.length) {
     const dir = resolve(config.projectDir || process.cwd())
     const project = {
@@ -188,7 +189,7 @@ export function apply(ctx, config = {}) {
       try {
         const r = readRegistry()
         const current = r.projects.find((p) => p.id === r.currentId) || r.projects[0] || null
-        json(res, 200, { currentId: r.currentId, projects: r.projects.map((p) => ({ id: p.id, title: p.title, goal: p.goal, dir: p.dir })), projectDirs: r.projects.map((p) => p.dir), current: projectState(current) })
+        json(res, 200, { currentId: r.currentId, projects: r.projects.map((p) => ({ id: p.id, title: p.title, goal: p.goal, dir: p.dir })), projectDirs: r.projects.map((p) => p.dir), defaults: { projectsRoot }, current: projectState(current) })
       } catch (err) { json(res, 500, { error: String(err && err.message ? err.message : err) }) }
     } })
     webServer.register({ kind: 'exact', path: '/dsh-projects/events', handler: (req, res) => {
@@ -211,6 +212,11 @@ export function apply(ctx, config = {}) {
         try {
           const args = JSON.parse(body || '{}')
           if (!args.title || !String(args.title).trim()) return json(res, 400, { code: 'TITLE_REQUIRED', error: '请填写项目名称' })
+          if (!args.dir) {
+            const slug = String(args.title).trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 32) || 'project'
+            args.dir = join(projectsRoot, slug + '-' + Date.now().toString(36))
+            mkdirSync(args.dir, { recursive: true })
+          }
           const checked = validateProjectDir(args.dir)
           if (!checked.ok) return json(res, 400, { code: checked.code, error: checked.message })
           args.dir = checked.dir

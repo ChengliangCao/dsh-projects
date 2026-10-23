@@ -48,6 +48,7 @@ window.__ModuleLoader__.load({
       const [state, setState] = useState(null)
       const [error, setError] = useState('')
       const [modal, setModal] = useState(false)
+      const [useDefaultDir, setUseDefaultDir] = useState(true)
       const [opened, setOpened] = useState(null)
       const [createError, setCreateError] = useState('')
       const [coordMsg, setCoordMsg] = useState('')
@@ -57,10 +58,12 @@ window.__ModuleLoader__.load({
       const cur = state && state.current
       const create = () => {
         setCreateError('')
-        if (!form.title || !form.dir) { setCreateError('名称与目录必填'); return }
-        api('/dsh-projects/create', form).then((r) => {
+        if (!form.title) { setCreateError('请填写项目名称'); return }
+        if (!useDefaultDir && !form.dir) { setCreateError('请填写项目目录，或选择使用默认目录'); return }
+        const payload = useDefaultDir ? { title: form.title, goal: form.goal, instructions: form.instructions } : { ...form }
+        api('/dsh-projects/create', payload).then((r) => {
           if (r && r.error) { setCreateError(r.error); return }
-          setModal(false); setForm({ title: '', goal: '', dir: '', instructions: '' }); setOpened(r.project.id); refresh()
+          setModal(false); setForm({ title: '', goal: '', dir: '', instructions: '' }); setOpened(r.project.id); refresh(); enterProject(r.project.id)
         }).catch((e) => setCreateError(String(e)))
       }
       const switchTo = (id) => api('/dsh-projects/switch', { id }).then(refresh).catch((e) => setError(String(e)))
@@ -142,7 +145,16 @@ window.__ModuleLoader__.load({
             h('div', { style: { fontSize: 15, fontWeight: 650, marginBottom: 12 } }, '新建项目'),
             Field({ label: '名称 *', value: form.title, onChange: (v) => setForm({ ...form, title: v }), placeholder: '例如：Payments API 性能优化' }),
             Field({ label: '目标（可选）', value: form.goal, onChange: (v) => setForm({ ...form, goal: v }), placeholder: '一句话目标' }),
-            Field({ label: '项目目录 *', value: form.dir, onChange: (v) => setForm({ ...form, dir: v }), placeholder: '/Users/you/workspace/project' }),
+            h('div', { style: { marginBottom: 10 } },
+              h('div', { style: { fontSize: 11.5, color: M.color, marginBottom: 4 } }, '项目目录'),
+              h('label', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', marginBottom: 4 } },
+                h('input', { type: 'radio', checked: useDefaultDir, onChange: () => setUseDefaultDir(true) }),
+                '使用默认目录（推荐）'),
+              useDefaultDir ? h('div', { style: { fontSize: 11, color: M.color, padding: '4px 8px', background: 'var(--dsw-alias-bg-layer-2, #f4f7ff)', borderRadius: 6, marginLeft: 18 } }, (state && state.defaults ? state.defaults.projectsRoot : '~/.dsh/projects-ui/projects') + '/<项目名>-xxxx') : null,
+              h('label', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', margin: '6px 0 4px' } },
+                h('input', { type: 'radio', checked: !useDefaultDir, onChange: () => setUseDefaultDir(false) }),
+                '选择其他目录（Desktop 版将调用系统目录选择器）'),
+              !useDefaultDir ? Field({ label: '目录路径 *', value: form.dir, onChange: (v) => setForm({ ...form, dir: v }), placeholder: '/Users/you/workspace/project' }) : null),
             Field({ label: '项目指令（可选）', value: form.instructions, onChange: (v) => setForm({ ...form, instructions: v }), placeholder: '所有线程都会收到的规则' }),
             createError ? h('div', { style: { fontSize: 11.5, color: 'var(--dsw-alias-state-error-primary, #f85149)', marginBottom: 6 } }, createError) : null,
             h('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 } },
