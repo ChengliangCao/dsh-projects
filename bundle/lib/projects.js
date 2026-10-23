@@ -118,8 +118,8 @@ export function apply(ctx, config = {}) {
   if (!readRegistry().projects.length) {
     const dir = resolve(config.projectDir || process.cwd())
     const project = {
-      id: 'demo', title: 'Payments API 性能优化', dir,
-      goal: '把 p95 延迟压到 200ms 以下；补全 API 文档。',
+      id: 'demo', title: config.projectTitle || 'Hello Project', dir,
+      goal: config.projectGoal || '体验 DSH Projects：多项目、Coordinator、线程、记忆与 Library。',
       instructions: '先给方案再动手；完成前运行 lint/test；完成后 project_report 汇报。',
       createdAt: new Date().toISOString(),
     }

@@ -3,15 +3,15 @@
     - id: app-memory
       name: '@dsh-projects/app-bundle/memory'
       config:
-        projectDir: '/Users/ignis/workspace/dsh-plugins/.demo-project'
-        rootDir: '/Users/ignis/workspace/dsh-plugins/.demo-project/.memory'
+        projectDir: '__PROJECTS_HOME__/hello-project'
+        rootDir: '__PROJECTS_HOME__/hello-project/.memory'
         maxIndexBytes: 4096
         maxIndexLines: 200
 
     - id: app-project-tools
       name: '@dsh-projects/app-bundle/project-tools'
       config:
-        projectDir: '/Users/ignis/workspace/dsh-plugins/.demo-project'
+        projectDir: '__PROJECTS_HOME__/hello-project'
 
     - id: app-ui
       name: '@dsh-projects/app-bundle'
@@ -19,4 +19,4 @@
     - id: app-projects
       name: '@dsh-projects/app-bundle/projects'
       config:
-        projectDir: '/Users/ignis/workspace/dsh-plugins/.demo-project'
+        projectDir: '__PROJECTS_HOME__/hello-project'
