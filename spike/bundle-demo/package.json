@@ -1,0 +1,17 @@
+{
+  "name": "@dsh-projects/spike-demo",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "M0 spike bundle: project memory injection + thread carrier probe for DSH.",
+  "license": "Apache-2.0",
+  "main": "lib/index.js",
+  "exports": {
+    ".": { "default": "./lib/index.js" },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": ["lib", "cordis.patch.yml", "icon.svg"],
+  "peerDependencies": { "@deepseek-ai/cordis": "~4.0.5" },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

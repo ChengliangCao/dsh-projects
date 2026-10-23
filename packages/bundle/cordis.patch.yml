@@ -1,0 +1,23 @@
+# dsh-projects bundle patch (skeleton — M0 will calibrate row ids & manifest)
+# Apply after dsh-base / dsh-web-app.
+- insert:
+    - id: project
+      name: '@dsh-projects/host-project'
+      config:
+        autoResolveDays: 7
+        maxActiveThreads: 4
+        maxThreadsPerDay: 200
+
+    - id: project-memory
+      name: '@dsh-projects/host-memory'
+      config:
+        maxIndexBytes: 4096
+        maxIndexLines: 200
+        enableUserScope: true
+
+    - id: project-tools
+      name: '@dsh-projects/host-tools'
+      config:
+        coordinatorPreset: projects-coordinator
+        threadPreset: projects-thread
+        maxBriefChars: 16000

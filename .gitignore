@@ -1,0 +1,27 @@
+# deps / build
+node_modules/
+packages/*/lib/
+packages/*/dist/
+pnpm-store/
+*.tsbuildinfo
+.pnpm-cache/
+.pnpm-data/
+.pnpm-state/
+
+# local profiles / secrets
+.dsh/
+.credentials*
+.env
+.env.*
+
+# demo & spike runtime artifacts
+.spike-project/
+.demo-project/.memory/
+.demo-project/.dsh/
+.demo-project/.git/
+.demo-project/library/
+.harness*
+*.log
+
+# research render outputs
+papers/

@@ -1,0 +1,23 @@
+{
+  "name": "dsh-projects",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Projects-style coordinator, threads, library and project memory for DeepSeek Harness (DSH).",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0",
+    "@deepseek-ai/cordis": "~4.0.5",
+    "@deepseek-ai/schemastery": "~3.18.5",
+    "@deepseek-ai/dsh-atomic-write": "0.2.1-rc.2"
+  }
+}

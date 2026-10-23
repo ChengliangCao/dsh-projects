@@ -1,0 +1,48 @@
+{
+  "name": "@dsh-projects/app-bundle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH Projects preview bundle: project memory + coordinator/thread tools.",
+  "license": "Apache-2.0",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./memory": {
+      "default": "./lib/memory.js"
+    },
+    "./project-tools": {
+      "default": "./lib/project-tools.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./projects": {
+      "default": "./lib/projects.js"
+    }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "icon.svg"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.5"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}

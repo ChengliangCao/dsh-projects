@@ -1,0 +1,9 @@
+# M0 spike bundle: apply after dsh-base / dsh-web-app.
+- insert:
+    - id: spike-demo
+      name: '@dsh-projects/spike-demo'
+      config:
+        projectDir: '/Users/ignis/workspace/dsh-plugins/.spike-project'
+        rootDir: '/Users/ignis/workspace/dsh-plugins/.spike-project/memory'
+        maxIndexBytes: 4096
+        maxIndexLines: 200

@@ -1,0 +1,26 @@
+{
+  "name": "@dsh-projects/bundle",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH Projects profile bundle: patch + presets + UI.",
+  "license": "Apache-2.0",
+  "files": [
+    "cordis.patch.yml",
+    "presets",
+    "locale",
+    "icon.svg",
+    "README.md"
+  ],
+  "dependencies": {
+    "@dsh-projects/host-project": "workspace:*",
+    "@dsh-projects/host-memory": "workspace:*",
+    "@dsh-projects/host-tools": "workspace:*",
+    "@dsh-projects/client-ui-project": "workspace:*"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

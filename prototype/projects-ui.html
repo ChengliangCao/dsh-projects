@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DSH Projects · UI 原型</title>
+<style>
+/* ============================================================
+   Design tokens — 对齐 DSH 主题变量命名（--dsw-alias-*）
+   ============================================================ */
+:root{
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius-s: 6px; --radius-m: 10px; --radius-l: 14px;
+  --brand:#4d6bfe;
+  --state-working:#4d8dff;
+  --state-waiting:#d29922;
+  --state-review:#a371f7;
+  --state-idle:#8b949e;
+  --state-success:#3fb950;
+  --state-error:#f85149;
+}
+html[data-theme="dark"]{
+  --bg-base:#0d0f12;
+  --bg-layer-1:#15181d;
+  --bg-layer-2:#1b1f26;
+  --bg-overlay:#232830;
+  --sidebar-fill:#101216;
+  --border-l1:rgba(255,255,255,.075);
+  --border-l2:rgba(255,255,255,.14);
+  --label-primary:#e9ebee;
+  --label-secondary:#9ba3ae;
+  --label-tertiary:#6d7681;
+  --chip-bg:rgba(255,255,255,.055);
+  --chip-bg-hover:rgba(255,255,255,.10);
+  --brand-soft:rgba(77,107,254,.16);
+  --brand-line:rgba(77,107,254,.45);
+  --card-shadow:0 10px 30px rgba(0,0,0,.35);
+  --hover:rgba(255,255,255,.045);
+  --user-bubble:#232a3f;
+  --code-bg:rgba(255,255,255,.045);
+  color-scheme: dark;
+}
+html[data-theme="light"]{
+  --bg-base:#f8faff;
+  --bg-layer-1:#ffffff;
+  --bg-layer-2:#f1f5fd;
+  --bg-overlay:#ffffff;
+  --sidebar-fill:#f3f7ff;
+  --border-l1:rgba(37,63,138,.10);
+  --border-l2:rgba(37,63,138,.20);
+  --label-primary:#1b2340;
+  --label-secondary:#5a6483;
+  --label-tertiary:#8a93ae;
+  --chip-bg:rgba(37,63,138,.055);
+  --chip-bg-hover:rgba(37,63,138,.10);
+  --brand-soft:rgba(77,107,254,.12);
+  --brand-line:rgba(77,107,254,.42);
+  --card-shadow:0 8px 26px rgba(37,63,138,.09);
+  --hover:rgba(37,63,138,.05);
+  --user-bubble:#e9efff;
+  --code-bg:rgba(37,63,138,.055);
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:var(--font); background:var(--bg-base); color:var(--label-primary);
+  font-size:13.5px; line-height:1.55; -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+button{font-family:inherit; color:inherit; background:none; border:none; cursor:pointer; font-size:inherit}
+input,textarea,select{font-family:inherit; font-size:inherit; color:inherit}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--border-l2); border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:var(--label-tertiary)}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ============================================================ App frame */
+.app{display:flex; height:100vh; width:100vw; overflow:hidden; background:var(--bg-base)}
+.icon{width:15px;height:15px;display:inline-block;vertical-align:-3px;flex:none}
+.icon svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.muted{color:var(--label-secondary)}
+.tertiary{color:var(--label-tertiary)}
+.mono{font-family:var(--mono)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;background:var(--state-idle)}
+.dot.working{background:var(--state-working);box-shadow:0 0 0 3px rgba(77,141,255,.14)}
+.dot.waiting{background:var(--state-waiting);box-shadow:0 0 0 3px rgba(210,153,34,.16)}
+.dot.review{background:var(--state-review);box-shadow:0 0 0 3px rgba(163,113,247,.16)}
+.dot.success{background:var(--state-success)}
+.dot.error{background:var(--state-error)}
+.dot.idle{background:var(--state-idle)}
+
+/* ============================================================ Sidebar */
+.sidebar{
+  width:268px; flex:none; background:var(--sidebar-fill); border-right:1px solid var(--border-l1);
+  display:flex; flex-direction:column; min-height:0; padding:10px 10px 8px;
+}
+.brand{display:flex; align-items:center; gap:8px; padding:6px 8px 12px; user-select:none}
+.brand-mark{
+  width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#4d6bfe,#7a5cff);
+  display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;flex:none;
+  box-shadow:0 2px 10px rgba(77,107,254,.35)
+}
+.brand-name{font-weight:600;font-size:13px;letter-spacing:.1px}
+.brand-ver{font-size:10.5px;color:var(--label-tertiary);border:1px solid var(--border-l1);padding:0 5px;border-radius:20px;margin-left:auto}
+.new-session{
+  display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:8px;
+  background:var(--brand);color:#fff;font-weight:600;font-size:12.5px;justify-content:center;
+  box-shadow:0 3px 14px rgba(77,107,254,.28); margin-bottom:8px;
+}
+.new-session:hover{filter:brightness(1.06)}
+.nav-list{display:flex;flex-direction:column;gap:1px;margin:2px 0 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;color:var(--label-secondary);font-size:12.5px;text-align:left}
+.nav-item:hover{background:var(--hover);color:var(--label-primary)}
+.nav-item.active{background:var(--brand-soft);color:var(--label-primary)}
+.nav-item .count{margin-left:auto;font-size:10.5px;padding:0 6px;border-radius:20px;background:var(--chip-bg);color:var(--label-secondary)}
+.side-block{display:flex;flex-direction:column;gap:2px;min-height:0}
+.side-header{display:flex;align-items:center;padding:9px 9px 4px;font-size:11px;color:var(--label-tertiary);font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+.side-header .more{margin-left:auto;color:var(--label-tertiary);border-radius:5px;padding:0 5px;font-size:14px;line-height:1}
+.side-header .more:hover{background:var(--chip-bg);color:var(--label-primary)}
+.mini-list{display:flex;flex-direction:column;gap:1px;overflow:auto;max-height:132px}
+.mini-item{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:7px;color:var(--label-secondary);font-size:12.5px;text-align:left;white-space:nowrap;overflow:hidden}
+.mini-item:hover{background:var(--hover);color:var(--label-primary)}
+.mini-item.active{background:var(--hover);color:var(--label-primary);font-weight:500}
+.mini-item .name{overflow:hidden;text-overflow:ellipsis}
+.mini-badge{margin-left:auto;font-size:10px;background:rgba(210,153,34,.16);color:#e3b341;padding:0 5px;border-radius:20px;font-weight:600}
+.side-sep{height:1px;background:var(--border-l1);margin:9px 6px}
+.session-list{display:flex;flex-direction:column;gap:1px;overflow:auto;flex:1;min-height:0}
+.session-item{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:7px;color:var(--label-secondary);font-size:12.5px;text-align:left;white-space:nowrap;overflow:hidden}
+.session-item:hover{background:var(--hover);color:var(--label-primary)}
+.session-item .name{overflow:hidden;text-overflow:ellipsis}
+.session-item .time{margin-left:auto;font-size:10.5px;color:var(--label-tertiary);flex:none}
+.session-item .thread-flag{font-size:9.5px;padding:0 4px;border-radius:4px;background:var(--brand-soft);color:#9db0ff;flex:none}
+.side-footer{border-top:1px solid var(--border-l1);margin-top:6px;padding-top:6px}
+.foot-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;width:100%;color:var(--label-secondary);font-size:12.5px;text-align:left}
+.foot-item:hover{background:var(--hover);color:var(--label-primary)}
+
+/* ============================================================ Main / views */
+.main{flex:1; min-width:0; display:flex; flex-direction:column; position:relative; background:var(--bg-base)}
+.view{display:none; flex:1; min-height:0}
+.view.active{display:flex}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;font-size:12.5px;
+  background:var(--chip-bg);color:var(--label-primary);border:1px solid transparent;transition:.12s;
+}
+.btn:hover{background:var(--chip-bg-hover)}
+.btn.primary{background:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;border-color:var(--border-l1);color:var(--label-secondary)}
+.btn.ghost:hover{background:var(--hover);color:var(--label-primary)}
+.btn.sm{padding:3px 8px;font-size:11.5px;border-radius:6px}
+.btn.danger{color:var(--state-error)}
+.btn.dotted{border:1px dashed var(--border-l2);background:transparent;color:var(--label-secondary)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:1.5px 8px;border-radius:20px;background:var(--chip-bg);color:var(--label-secondary);white-space:nowrap}
+.pill.working{background:rgba(77,141,255,.13);color:#8fb9ff}
+.pill.waiting{background:rgba(210,153,34,.14);color:#e3b341}
+.pill.review{background:rgba(163,113,247,.14);color:#c4a7ff}
+.pill.success{background:rgba(63,185,80,.13);color:#7ee787}
+.pill.idle{background:var(--chip-bg);color:var(--label-secondary)}
+.pill.brand{background:var(--brand-soft);color:#a8b8ff}
+.pill.error{background:rgba(248,81,73,.13);color:#ff9c94}
+
+/* ============================================================ Projects home */
+#view-home{overflow:auto; display:none}
+#view-home.active{display:block}
+.home-wrap{max-width:980px;margin:0 auto;padding:34px 28px 60px}
+.home-head{display:flex;align-items:flex-end;gap:14px;margin-bottom:6px}
+.home-title{font-size:23px;font-weight:650;letter-spacing:-.2px;margin:0}
+.home-sub{color:var(--label-secondary);font-size:12.5px;margin:2px 0 0}
+.home-actions{margin-left:auto;display:flex;gap:8px}
+.home-search{margin:18px 0 16px;display:flex;align-items:center;gap:8px;background:var(--bg-layer-1);border:1px solid var(--border-l1);border-radius:10px;padding:7px 11px;color:var(--label-tertiary)}
+.home-search input{flex:1;background:none;border:none;outline:none;color:var(--label-primary)}
+.home-search input::placeholder{color:var(--label-tertiary)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.project-card{
+  position:relative;text-align:left;padding:15px 15px 12px;border-radius:var(--radius-l);
+  background:var(--bg-layer-1);border:1px solid var(--border-l1);transition:.14s;overflow:hidden;
+}
+.project-card:hover{border-color:var(--border-l2);transform:translateY(-1px);box-shadow:var(--card-shadow)}
+.project-card .pc-head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.pc-avatar{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex:none;background:var(--brand-soft);color:#a8b8ff}
+.pc-avatar.a{background:rgba(63,185,80,.16);color:#7ee787}
+.pc-avatar.b{background:rgba(210,153,34,.16);color:#e3b341}
+.pc-avatar.c{background:rgba(163,113,247,.16);color:#c4a7ff}
+.pc-name{font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-goal{color:var(--label-secondary);font-size:12px;min-height:34px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.pc-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px;color:var(--label-secondary)}
+.pc-meta .spacer{flex:1}
+.pc-dot{position:absolute;top:13px;right:13px;width:8px;height:8px;border-radius:50%;background:var(--state-waiting);box-shadow:0 0 0 3px rgba(210,153,34,.15)}
+.project-card.new{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:158px;border-style:dashed;color:var(--label-secondary);background:transparent}
+.project-card.new:hover{color:var(--label-primary);border-color:var(--brand-line)}
+.project-card.new .plus{width:30px;height:30px;border-radius:50%;border:1px dashed var(--border-l2);display:grid;place-items:center;font-size:17px}
+.home-section-title{margin:28px 0 10px;font-size:12px;color:var(--label-tertiary);font-weight:600;letter-spacing:.35px;text-transform:uppercase}
+.recent-list{background:var(--bg-layer-1);border:1px solid var(--border-l1);border-radius:var(--radius-m);overflow:hidden}
+.recent-row{display:flex;align-items:center;gap:10px;padding:9px 13px;font-size:12.5px;border-bottom:1px solid var(--border-l1);width:100%;text-align:left}
+.recent-row:last-child{border-bottom:none}
+.recent-row:hover{background:var(--hover)}
+.recent-row .name{font-weight:500}
+.recent-row .meta{margin-left:auto;color:var(--label-tertiary);font-size:11px;display:flex;gap:12px;align-items:center}
+
+/* ============================================================ Workbench */
+.workbench{display:none}
+.workbench.active{display:flex; min-height:0; flex:1}
+.conv-col{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.conv-header{
+  height:50px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px;
+  border-bottom:1px solid var(--border-l1);background:var(--bg-base);
+}
+.crumb{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--label-secondary);min-width:0}
+.crumb .sep{color:var(--label-tertiary)}
+.crumb .cur{color:var(--label-primary);font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumb button{color:var(--label-secondary)}
+.crumb button:hover{color:var(--label-primary)}
+.conv-header .spacer{flex:1}
+.hdr-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:7px;color:var(--label-secondary);font-size:12px}
+.hdr-btn:hover{background:var(--hover);color:var(--label-primary)}
+.hdr-btn.on{background:var(--brand-soft);color:#a8b8ff}
+.dot-badge{width:6px;height:6px;border-radius:50%;background:var(--state-waiting);display:inline-block}
+.conv-body{flex:1;overflow:auto;padding:26px 0 10px;scroll-behavior:smooth}
+.conv-inner{max-width:760px;margin:0 auto;padding:0 22px}
+.msg{display:flex;gap:11px;margin:0 0 20px}
+.msg .avatar{width:24px;height:24px;border-radius:7px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;margin-top:1px}
+.msg.user .avatar{background:var(--chip-bg);color:var(--label-secondary)}
+.msg.coord .avatar{background:linear-gradient(135deg,#4d6bfe,#7a5cff);color:#fff}
+.msg .body{min-width:0;flex:1}
+.msg .who{font-size:11.5px;color:var(--label-tertiary);margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.msg .who b{color:var(--label-secondary);font-weight:600}
+.msg .text{font-size:13.5px;line-height:1.68;color:var(--label-primary);white-space:pre-wrap;word-break:break-word}
+.msg.user .text{background:var(--user-bubble);padding:9px 12px;border-radius:4px 12px 12px 12px;display:inline-block}
+.msg .actions{display:flex;gap:4px;margin-top:5px;opacity:0;transition:.12s}
+.msg:hover .actions{opacity:1}
+.mini-action{font-size:11px;color:var(--label-tertiary);padding:2px 6px;border-radius:5px}
+.mini-action:hover{background:var(--chip-bg);color:var(--label-primary)}
+.time-divider{display:flex;align-items:center;gap:12px;color:var(--label-tertiary);font-size:10.5px;margin:26px 0 18px}
+.time-divider::before,.time-divider::after{content:"";height:1px;background:var(--border-l1);flex:1}
+
+/* thread card inline */
+.thread-card{
+  border:1px solid var(--border-l1);background:var(--bg-layer-1);border-radius:var(--radius-m);
+  overflow:hidden;margin:2px 0 10px;box-shadow:0 1px 2px rgba(0,0,0,.06);cursor:pointer;transition:.13s;
+}
+.thread-card:hover{border-color:var(--border-l2);box-shadow:var(--card-shadow)}
+.thread-card .tc-top{display:flex;align-items:center;gap:9px;padding:11px 13px 9px}
+.thread-card .tc-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--brand-soft);color:#a8b8ff;flex:none}
+.thread-card .tc-title{font-weight:600;font-size:12.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thread-card .tc-bottom{display:flex;align-items:center;gap:8px;padding:0 13px 10px;font-size:11px;color:var(--label-tertiary)}
+.thread-card .tc-bottom .spacer{flex:1}
+.thread-card.waiting{border-color:rgba(210,153,34,.38);background:linear-gradient(180deg,rgba(210,153,34,.055),transparent 65%),var(--bg-layer-1)}
+.thread-card.waiting .tc-icon{background:rgba(210,153,34,.15);color:#e3b341}
+.thread-card.report{border-color:rgba(63,185,80,.3)}
+.thread-card.report .tc-icon{background:rgba(63,185,80,.14);color:#7ee787}
+.tc-open{font-size:11px;color:var(--label-secondary);padding:3px 8px;border-radius:6px;border:1px solid var(--border-l1)}
+.tc-open:hover{background:var(--chip-bg);color:var(--label-primary)}
+
+/* approval / report / suggested */
+.callout{border-radius:var(--radius-m);padding:12px 13px;margin:2px 0 10px;border:1px solid var(--border-l1);background:var(--bg-layer-1)}
+.callout.approval{border-color:rgba(210,153,34,.4);background:linear-gradient(180deg,rgba(210,153,34,.07),transparent),var(--bg-layer-1)}
+.callout .co-head{display:flex;align-items:center;gap:8px;font-weight:600;font-size:12.5px;margin-bottom:6px}
+.callout .co-head .pill{margin-left:auto}
+.callout .co-desc{font-size:12px;color:var(--label-secondary);margin-bottom:10px}
+.cmd{font-family:var(--mono);font-size:11.5px;background:var(--code-bg);border:1px solid var(--border-l1);border-radius:6px;padding:7px 9px;color:var(--label-primary);white-space:pre-wrap;margin-bottom:10px}
+.co-actions{display:flex;gap:6px;flex-wrap:wrap}
+.deliverables{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.file-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;background:var(--chip-bg);border:1px solid var(--border-l1);border-radius:6px;padding:3px 7px;color:var(--label-secondary)}
+.file-chip .ext{font-family:var(--mono);font-size:9px;font-weight:700;color:#a8b8ff}
+.suggested{border:1px dashed var(--border-l2);border-radius:var(--radius-m);padding:12px 13px;background:transparent;margin:2px 0 10px}
+.suggested .sg-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--label-secondary);margin-bottom:8px;font-weight:600}
+.sg-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--border-l1);font-size:12px}
+.sg-row:first-of-type{border-top:none}
+.sg-row .sg-title{flex:1;min-width:0}
+.sg-row .sg-title small{display:block;color:var(--label-tertiary);font-size:10.5px;margin-top:1px}
+.suggested .sg-foot{display:flex;justify-content:flex-end;margin-top:8px}
+
+/* composer */
+.composer-wrap{flex:none;padding:8px 22px 14px;background:linear-gradient(180deg,transparent,var(--bg-base) 40%)}
+.composer{max-width:760px;margin:0 auto}
+.quick-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px}
+.qchip{font-size:10.5px;padding:2.5px 8px;border-radius:20px;border:1px solid var(--border-l1);color:var(--label-tertiary);background:transparent}
+.qchip:hover{border-color:var(--brand-line);color:var(--label-primary);background:var(--brand-soft)}
+.composer-box{border:1px solid var(--border-l2);background:var(--bg-layer-1);border-radius:13px;padding:10px 12px 8px;transition:.13s;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+.composer-box:focus-within{border-color:var(--brand-line);box-shadow:0 0 0 3px var(--brand-soft)}
+.composer textarea{width:100%;min-height:24px;max-height:150px;resize:none;background:none;border:none;outline:none;color:var(--label-primary);font-size:13.5px;line-height:1.55}
+.composer textarea::placeholder{color:var(--label-tertiary)}
+.composer-foot{display:flex;align-items:center;gap:6px;margin-top:6px;color:var(--label-tertiary);font-size:11px}
+.composer-foot .spacer{flex:1}
+.model-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;background:var(--chip-bg);border:1px solid var(--border-l1);font-size:10.5px;color:var(--label-secondary)}
+.send-btn{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--brand);color:#fff}
+.send-btn:hover{filter:brightness(1.08)}
+.send-btn svg{width:13px;height:13px;stroke-width:2}
+
+/* ============================================================ Right bar */
+.rightbar{
+  width:384px;flex:none;border-left:1px solid var(--border-l1);background:var(--bg-layer-1);
+  display:flex;flex-direction:column;min-height:0;
+}
+.rb-tabs{display:flex;align-items:center;gap:2px;padding:9px 10px 0;border-bottom:1px solid var(--border-l1);flex:none}
+.rb-tab{display:inline-flex;align-items:center;gap:6px;padding:6px 10px 9px;font-size:12px;color:var(--label-secondary);border-bottom:2px solid transparent;margin-bottom:-1px}
+.rb-tab:hover{color:var(--label-primary)}
+.rb-tab.active{color:var(--label-primary);border-bottom-color:var(--brand);font-weight:600}
+.rb-tab .dot-badge{margin-left:1px}
+.rb-close{margin-left:auto;color:var(--label-tertiary);padding:4px;border-radius:6px}
+.rb-close:hover{background:var(--chip-bg);color:var(--label-primary)}
+.rb-pane{display:none;flex:1;overflow:auto;padding:12px 12px 18px}
+.rb-pane.active{display:block}
+.ov-section{margin-bottom:16px}
+.ov-section .ov-head{display:flex;align-items:center;gap:7px;padding:0 3px 7px;font-size:11px;font-weight:650;color:var(--label-secondary);letter-spacing:.2px}
+.ov-head .n{color:var(--label-tertiary);font-weight:500}
+.ov-head .spacer{flex:1}
+.ov-head .tiny{font-size:10.5px;font-weight:400;color:var(--label-tertiary)}
+.thread-row{
+  display:flex;align-items:flex-start;gap:9px;padding:9px 9px;border-radius:9px;border:1px solid transparent;
+  cursor:pointer;transition:.12s;text-align:left;width:100%;
+}
+.thread-row:hover{background:var(--hover);border-color:var(--border-l1)}
+.thread-row .tr-dot{margin-top:5px}
+.thread-row .tr-main{min-width:0;flex:1}
+.thread-row .tr-title{font-size:12.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thread-row .tr-meta{font-size:10.5px;color:var(--label-tertiary);margin-top:2px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.thread-row .tr-actions{display:flex;gap:3px;opacity:0;transition:.1s;flex:none}
+.thread-row:hover .tr-actions{opacity:1}
+.thread-row .tr-actions .icon-btn{width:22px;height:22px;display:grid;place-items:center;border-radius:5px;color:var(--label-tertiary)}
+.thread-row .tr-actions .icon-btn:hover{background:var(--chip-bg);color:var(--label-primary)}
+.thread-row.needs{background:linear-gradient(90deg,rgba(210,153,34,.06),transparent 70%)}
+.ov-empty{font-size:11.5px;color:var(--label-tertiary);padding:6px 9px}
+.usage-card{margin-top:6px;border:1px solid var(--border-l1);border-radius:var(--radius-m);padding:11px 12px;background:var(--bg-base)}
+.usage-card .uc-title{font-size:11px;color:var(--label-secondary);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.usage-card .uc-row{display:flex;justify-content:space-between;font-size:11px;color:var(--label-secondary);padding:2.5px 0}
+.usage-card .uc-row b{color:var(--label-primary);font-weight:600}
+.bar{height:4px;border-radius:4px;background:var(--chip-bg);overflow:hidden;margin-top:7px}
+.bar>i{display:block;height:100%;background:var(--brand);border-radius:4px}
+
+/* library */
+.lib-drop{border:1px dashed var(--border-l2);border-radius:var(--radius-m);padding:14px;text-align:center;color:var(--label-tertiary);font-size:11.5px;margin-bottom:12px;background:var(--bg-base);cursor:pointer}
+.lib-drop:hover{border-color:var(--brand-line);color:var(--label-secondary);background:var(--brand-soft)}
+.lib-drop b{color:var(--label-secondary);font-weight:600}
+.lib-toolbar{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.lib-search{flex:1;display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:7px;background:var(--bg-base);border:1px solid var(--border-l1);color:var(--label-tertiary);font-size:11.5px}
+.lib-search input{background:none;border:none;outline:none;width:100%;color:var(--label-primary);font-size:11.5px}
+.lib-list{display:flex;flex-direction:column;gap:1px}
+.lib-item{display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;width:100%;text-align:left}
+.lib-item:hover{background:var(--hover)}
+.file-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-family:var(--mono);font-size:8.5px;font-weight:700;flex:none;background:var(--chip-bg);color:var(--label-secondary)}
+.file-icon.pdf{background:rgba(248,81,73,.13);color:#ff9c94}
+.file-icon.md{background:rgba(77,141,255,.13);color:#8fb9ff}
+.file-icon.xlsx{background:rgba(63,185,80,.13);color:#7ee787}
+.file-icon.csv{background:rgba(210,153,34,.14);color:#e3b341}
+.file-icon.zip{background:rgba(163,113,247,.14);color:#c4a7ff}
+.lib-main{flex:1;min-width:0}
+.lib-name{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lib-meta{font-size:10.5px;color:var(--label-tertiary);margin-top:1px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.src-tag{font-size:9.5px;padding:0 5px;border-radius:4px;background:var(--chip-bg);color:var(--label-secondary)}
+.src-tag.thread{background:var(--brand-soft);color:#a8b8ff}
+.lib-note{font-size:10.5px;color:var(--label-tertiary);margin-top:12px;padding:8px 10px;border-radius:8px;background:var(--bg-base);border:1px solid var(--border-l1)}
+
+/* settings */
+.set-section{margin-bottom:18px}
+.set-title{font-size:11px;font-weight:650;color:var(--label-secondary);letter-spacing:.3px;margin:0 0 8px;text-transform:uppercase}
+.set-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.set-label{font-size:11.5px;color:var(--label-secondary);display:flex;align-items:center;gap:6px}
+.set-label .req{color:var(--state-error)}
+.set-input,.set-area,.set-select{background:var(--bg-base);border:1px solid var(--border-l1);border-radius:8px;padding:7px 9px;color:var(--label-primary);font-size:12px;outline:none;width:100%}
+.set-area{min-height:86px;resize:vertical;line-height:1.6}
+.set-input:focus,.set-area:focus,.set-select:focus{border-color:var(--brand-line);box-shadow:0 0 0 3px var(--brand-soft)}
+.counter{font-size:10.5px;color:var(--label-tertiary);text-align:right}
+.set-row{display:flex;gap:8px}
+.set-row>*{flex:1}
+.lifecycle{display:flex;gap:6px;flex-wrap:wrap}
+.lifecycle .btn{flex:1;justify-content:center}
+.danger-zone{border:1px solid rgba(248,81,73,.28);border-radius:var(--radius-m);padding:11px 12px;margin-top:4px}
+.danger-zone .dz-title{color:var(--state-error);font-size:11.5px;font-weight:600;margin-bottom:4px}
+.danger-zone .dz-desc{color:var(--label-tertiary);font-size:10.5px;margin-bottom:8px;line-height:1.5}
+
+/* ============================================================ Thread view */
+.thread-view{display:none;flex:1;flex-direction:column;min-height:0;background:var(--bg-base)}
+.thread-view.active{display:flex}
+.thread-header{height:50px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border-l1)}
+.thread-tools{margin-left:auto;display:flex;gap:6px;align-items:center}
+.thread-body{flex:1;overflow:auto;padding:22px 0}
+.thread-inner{max-width:720px;margin:0 auto;padding:0 22px}
+.thread-banner{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:9px;background:var(--brand-soft);border:1px solid rgba(77,107,254,.25);font-size:11px;color:#a8b8ff;margin-bottom:20px}
+.tool-row{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;margin:2px 0 8px;border:1px solid var(--border-l1);border-radius:8px;background:var(--bg-layer-1);font-size:11.5px;color:var(--label-secondary);cursor:pointer}
+.tool-row:hover{border-color:var(--border-l2)}
+.tool-row .k{font-family:var(--mono);font-size:10.5px;color:var(--label-tertiary);flex:none;width:14px;text-align:center}
+.tool-row .t{font-family:var(--mono);font-size:11px;color:var(--label-primary)}
+.tool-row .v{color:var(--label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-row .ok{margin-left:auto;color:var(--state-success);font-size:10px;flex:none}
+.thread-composer{padding-bottom:6px}
+
+/* ============================================================ Floating chrome */
+.theme-toggle{
+  position:fixed;right:16px;bottom:16px;width:34px;height:34px;border-radius:10px;background:var(--bg-overlay);
+  border:1px solid var(--border-l1);display:grid;place-items:center;color:var(--label-secondary);
+  box-shadow:var(--card-shadow);z-index:60;
+}
+.theme-toggle:hover{color:var(--label-primary);border-color:var(--border-l2)}
+.annot-btn{
+  position:fixed;right:60px;bottom:16px;height:34px;padding:0 11px;border-radius:10px;background:var(--bg-overlay);
+  border:1px solid var(--border-l1);display:flex;align-items:center;gap:6px;color:var(--label-secondary);
+  box-shadow:var(--card-shadow);z-index:60;font-size:11.5px;
+}
+.annot-btn:hover{color:var(--label-primary);border-color:var(--border-l2)}
+.annot-panel{
+  position:fixed;right:16px;bottom:60px;width:420px;max-height:70vh;overflow:auto;background:var(--bg-overlay);
+  border:1px solid var(--border-l2);border-radius:12px;box-shadow:var(--card-shadow);z-index:61;padding:14px;display:none;
+}
+.annot-panel.open{display:block}
+.annot-panel h4{margin:0 0 4px;font-size:13px}
+.annot-panel p{margin:0 0 10px;color:var(--label-tertiary);font-size:11px}
+.annot-item{display:flex;gap:9px;padding:7px 0;border-top:1px solid var(--border-l1);font-size:11.5px}
+.annot-item:first-of-type{border-top:none}
+.annot-item .slot{font-family:var(--mono);font-size:10.5px;color:#a8b8ff;background:var(--brand-soft);padding:1px 6px;border-radius:4px;height:fit-content;white-space:nowrap}
+.annot-item .desc{color:var(--label-secondary);line-height:1.5}
+.annot-btn.active{color:#a8b8ff;border-color:var(--brand-line)}
+
+/* modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:80;padding:20px}
+.modal-mask.open{display:flex}
+.modal{width:520px;max-width:100%;background:var(--bg-overlay);border:1px solid var(--border-l2);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.5);overflow:hidden;animation:pop .16s ease-out}
+@keyframes pop{from{transform:scale(.97);opacity:.6}to{transform:scale(1);opacity:1}}
+.modal-head{display:flex;align-items:center;gap:9px;padding:15px 17px 0}
+.modal-head h3{margin:0;font-size:15px}
+.modal-head .x{margin-left:auto;width:26px;height:26px;display:grid;place-items:center;border-radius:7px;color:var(--label-tertiary)}
+.modal-head .x:hover{background:var(--chip-bg);color:var(--label-primary)}
+.modal-body{padding:12px 17px 4px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 17px 16px}
+.modal .hint{font-size:10.5px;color:var(--label-tertiary);margin:2px 0 10px}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);opacity:0;
+  background:var(--bg-overlay);border:1px solid var(--border-l2);box-shadow:var(--card-shadow);
+  padding:8px 14px;border-radius:9px;font-size:12px;z-index:100;transition:.2s;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* proj tree (Claude-like) */
+.proj-tree{display:flex;flex-direction:column;gap:2px;overflow:auto;min-height:0;max-height:40vh;padding:0 2px}
+.proj-group{display:flex;flex-direction:column}
+.proj-row{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:7px;color:var(--label-secondary);font-size:12.5px;text-align:left;white-space:nowrap;overflow:hidden}
+.proj-row:hover{background:var(--hover);color:var(--label-primary)}
+.proj-group.open>.proj-row{color:var(--label-primary);font-weight:550}
+.proj-row .chev{width:12px;font-size:10px;color:var(--label-tertiary);flex:none;transition:.15s}
+.proj-row .name{overflow:hidden;text-overflow:ellipsis}
+.proj-children{display:none;flex-direction:column;padding:1px 0 3px 16px;margin-left:7px;border-left:1px solid var(--border-l1)}
+.proj-group.open>.proj-children{display:flex}
+.child-row{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;color:var(--label-secondary);font-size:12px;text-align:left;white-space:nowrap}
+.child-row:hover{background:var(--hover);color:var(--label-primary)}
+.child-row .name{overflow:hidden;text-overflow:ellipsis}
+.child-row .time{margin-left:auto;font-size:10px;color:var(--label-tertiary)}
+.child-row .c-icon{width:13px;height:13px;border-radius:4px;background:var(--brand-soft);color:#8fa6ff;display:grid;place-items:center;font-size:8.5px;font-weight:700;flex:none}
+.foot-item.account{gap:7px}
+.avatar-sm{width:18px;height:18px;border-radius:50%;background:var(--brand-soft);color:#7f95e8;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.plan{margin-left:auto;font-size:9.5px;padding:0 5px;border-radius:4px;background:var(--chip-bg);color:var(--label-tertiary)}
+
+/* library folders */
+.lib-crumb{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--label-tertiary);margin:2px 0 9px;padding:0 3px;min-height:18px}
+.crumb-btn{color:var(--label-secondary);padding:1px 4px;border-radius:4px}
+.crumb-btn:hover{background:var(--chip-bg);color:var(--label-primary)}
+#lib-crumb-path{display:flex;align-items:center;gap:5px}
+.lib-crumb-hint{margin-left:auto;font-size:10.5px;color:var(--label-tertiary)}
+.folder-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:10px}
+.folder-card{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--border-l1);border-radius:9px;background:var(--bg-base);text-align:left;cursor:pointer;transition:.12s;min-width:0}
+.folder-card:hover{border-color:var(--brand-line);background:var(--brand-soft)}
+.folder-card .fic{width:24px;height:24px;border-radius:7px;background:rgba(77,107,254,.12);color:#7f95e8;display:grid;place-items:center;flex:none}
+.folder-card .fname{font-size:12px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-card .fcount{font-size:10px;color:var(--label-tertiary)}
+.folder-card .fmore{margin-left:auto;color:var(--label-tertiary);font-size:14px;line-height:1;padding:1px 3px;border-radius:4px}
+.folder-card .fmore:hover{background:var(--chip-bg);color:var(--label-primary)}
+.folder-card.dragover{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 2px var(--brand-soft)}
+.folder-card.new-folder{justify-content:center;border-style:dashed;color:var(--label-secondary);background:transparent}
+.folder-card.new-folder:hover{color:var(--label-primary)}
+.lib-item[draggable="true"]{cursor:grab}
+.lib-item.dragging{opacity:.5}
+.lib-item .move-btn{margin-left:2px;font-size:10px;color:var(--label-tertiary);padding:2px 5px;border-radius:5px;opacity:0;transition:.1s;flex:none}
+.lib-item:hover .move-btn{opacity:1}
+.lib-item .move-btn:hover{background:var(--chip-bg);color:var(--label-primary)}
+.move-list{display:flex;flex-direction:column;gap:2px;max-height:280px;overflow:auto}
+.move-opt{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:8px;text-align:left;font-size:12px;color:var(--label-secondary)}
+.move-opt:hover{background:var(--hover);color:var(--label-primary)}
+.move-opt .ic{width:22px;height:22px;border-radius:6px;background:var(--chip-bg);display:grid;place-items:center;font-size:11px;flex:none}
+.move-opt .cnt{margin-left:auto;font-size:10px;color:var(--label-tertiary)}
+
+/* responsive */
+@media (max-width: 1180px){
+  .rightbar{width:340px}
+}
+@media (max-width: 1000px){
+  .sidebar{width:220px}
+  .rightbar{display:none}
+}
+@media (max-width: 760px){
+  .sidebar{display:none}
+  .home-wrap{padding:22px 16px 50px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ======================= Left sidebar ======================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-name">DeepSeek Harness</div>
+      <div class="brand-ver">0.2.1</div>
+    </div>
+    <button class="new-session" data-view="home">＋ 新建会话</button>
+
+    <nav class="nav-list">
+      <button class="nav-item active" data-view="home">
+        <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+        Projects <span class="count">4</span>
+      </button>
+      <button class="nav-item">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></span>
+        插件
+      </button>
+    </nav>
+
+    <div class="side-sep"></div>
+    <div class="side-header">项目 <button class="more" data-view="home" title="所有项目">全部</button></div>
+    <div class="proj-tree" id="proj-tree">
+      <div class="proj-group open">
+        <button class="proj-row" data-view="workbench">
+          <span class="chev">▾</span><span class="dot working"></span>
+          <span class="name">Payments API 性能优化</span><span class="mini-badge">1</span>
+        </button>
+        <div class="proj-children">
+          <button class="child-row" data-view="thread"><span class="dot working"></span><span class="name">补全 API 文档</span><span class="time">12m</span></button>
+          <button class="child-row" data-view="thread"><span class="dot waiting"></span><span class="name">定位慢查询</span><span class="time">8m</span></button>
+          <button class="child-row coord" data-view="workbench"><span class="c-icon">C</span><span class="name">项目对话</span><span class="time">现在</span></button>
+        </div>
+      </div>
+      <div class="proj-group">
+        <button class="proj-row" data-view="workbench"><span class="chev">▸</span><span class="dot idle"></span><span class="name">合同审阅助手</span></button>
+        <div class="proj-children"></div>
+      </div>
+      <div class="proj-group">
+        <button class="proj-row" data-view="workbench"><span class="chev">▸</span><span class="dot success"></span><span class="name">迁移到新 ORM</span></button>
+        <div class="proj-children"></div>
+      </div>
+      <div class="proj-group">
+        <button class="proj-row" data-view="workbench"><span class="chev">▸</span><span class="dot idle"></span><span class="name">Q4 竞品调研</span></button>
+        <div class="proj-children"></div>
+      </div>
+    </div>
+
+    <div class="side-sep"></div>
+    <div class="side-header">最近会话</div>
+    <div class="session-list">
+      <button class="session-item"><span class="dot idle"></span><span class="name">合同条款比对</span><span class="time">昨天</span></button>
+      <button class="session-item"><span class="dot idle"></span><span class="name">ORM 迁移方案</span><span class="time">周一</span></button>
+      <button class="session-item"><span class="dot idle"></span><span class="name">Q4 竞品清单</span><span class="time">2 天前</span></button>
+    </div>
+
+    <div class="side-footer">
+      <button class="foot-item account"><span class="avatar-sm">i</span>ignis<span class="plan">Pro</span></button>
+      <button class="foot-item">
+        <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span>
+        设置
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======================= Main ======================= -->
+  <main class="main">
+
+    <!-- ---------- View 1: Projects home ---------- -->
+    <section class="view active" id="view-home">
+      <div class="home-wrap">
+        <div class="home-head">
+          <div>
+            <h1 class="home-title">Projects</h1>
+            <p class="home-sub">一个长期对话 = 协调者；每个任务开一个独立线程；资料放进项目 Library。</p>
+          </div>
+          <div class="home-actions">
+            <button class="btn ghost" id="import-session">从会话创建</button>
+            <button class="btn primary" id="new-project-btn">＋ 新建项目</button>
+          </div>
+        </div>
+
+        <div class="home-search">
+          <span class="icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>
+          <input placeholder="搜索项目、目标或资料…" id="home-search-input"/>
+          <span class="pill">⌘K</span>
+        </div>
+
+        <div class="card-grid" id="project-grid">
+          <button class="project-card" data-view="workbench">
+            <span class="pc-dot" title="1 条线程需要你"></span>
+            <div class="pc-head"><span class="pc-avatar">P</span><span class="pc-name">Payments API 性能优化</span></div>
+            <div class="pc-goal">把 p95 延迟压到 200ms 以下：慢查询、缓存、依赖升级，涉及 payments-api 与 infra 两个仓库。</div>
+            <div class="pc-meta">
+              <span class="pill working">3 进行中</span>
+              <span class="pill waiting">1 需要你</span>
+              <span class="spacer"></span>
+              <span>Library 12</span><span>·</span><span>12 分钟前</span>
+            </div>
+          </button>
+
+          <button class="project-card" data-view="workbench">
+            <div class="pc-head"><span class="pc-avatar a">合</span><span class="pc-name">合同审阅助手</span></div>
+            <div class="pc-goal">批量审阅供应商合同：找出与前版不一致的条款、高风险付款条件，产出对比报告。</div>
+            <div class="pc-meta">
+              <span class="pill idle">空闲</span>
+              <span class="spacer"></span>
+              <span>Library 8</span><span>·</span><span>昨天</span>
+            </div>
+          </button>
+
+          <button class="project-card" data-view="workbench">
+            <div class="pc-head"><span class="pc-avatar b">O</span><span class="pc-name">迁移到新 ORM</span></div>
+            <div class="pc-goal">把 billing service 从旧 ORM 迁到 Prisma，分 4 个线程按模块推进，每线程一个 PR。</div>
+            <div class="pc-meta">
+              <span class="pill success">5 已收尾</span>
+              <span class="spacer"></span>
+              <span>Library 3</span><span>·</span><span>周一</span>
+            </div>
+          </button>
+
+          <button class="project-card" data-view="workbench">
+            <div class="pc-head"><span class="pc-avatar c">研</span><span class="pc-name">Q4 竞品调研</span></div>
+            <div class="pc-goal">收集 10 家竞品的定价与功能矩阵，输出可汇报的对比文档与图表。</div>
+            <div class="pc-meta">
+              <span class="pill idle">空闲</span>
+              <span class="spacer"></span>
+              <span>Library 21</span><span>·</span><span>2 天前</span>
+            </div>
+          </button>
+
+          <button class="project-card new" id="new-project-card">
+            <span class="plus">＋</span>
+            <span>新建项目</span>
+            <span style="font-size:10.5px;color:var(--label-tertiary)">名称必填，其余稍后补</span>
+          </button>
+        </div>
+
+        <div class="home-section-title">最近活动</div>
+        <div class="recent-list">
+          <button class="recent-row" data-view="thread">
+            <span class="dot working"></span><span class="name">补全 API 文档</span>
+            <span class="muted">· Payments API 性能优化</span>
+            <span class="meta"><span>线程</span><span>12 分钟前</span></span>
+          </button>
+          <button class="recent-row" data-view="thread">
+            <span class="dot waiting"></span><span class="name">慢查询定位</span>
+            <span class="muted">· Payments API 性能优化</span>
+            <span class="meta"><span class="pill waiting">等待你回答</span><span>8 分钟前</span></span>
+          </button>
+          <button class="recent-row" data-view="workbench">
+            <span class="dot idle"></span><span class="name">项目对话</span>
+            <span class="muted">· Payments API 性能优化</span>
+            <span class="meta"><span>协调者</span><span>15 分钟前</span></span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- View 2: Workbench ---------- -->
+    <section class="view workbench" id="view-workbench">
+      <div class="conv-col">
+        <header class="conv-header">
+          <div class="crumb">
+            <button data-view="home">Projects</button>
+            <span class="sep">/</span>
+            <button data-view="home">Payments API 性能优化</button>
+            <span class="sep">/</span>
+            <span class="cur">项目对话</span>
+            <span class="pill success" style="margin-left:2px">active</span>
+          </div>
+          <div class="spacer"></div>
+          <button class="hdr-btn on" id="overview-toggle" title="打开/关闭 Threads 面板">
+            <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M3 10h6"/></svg></span>
+            Threads
+            <span class="dot-badge" title="1 条线程需要你"></span>
+          </button>
+          <button class="hdr-btn" title="更多">⋯</button>
+        </header>
+
+        <div class="conv-body" id="conv-body">
+          <div class="conv-inner">
+            <div class="msg user">
+              <div class="avatar">你</div>
+              <div class="body">
+                <div class="who">你 <span>14:02</span></div>
+                <div class="text">把 docs/api.md 的接口补全并跑测试；另外看看 payments 的慢查询。PR 不用急着开，先把方案给我。</div>
+              </div>
+            </div>
+
+            <div class="msg coord">
+              <div class="avatar">C</div>
+              <div class="body">
+                <div class="who"><b>协调者</b><span class="pill brand">projects-coordinator</span><span>14:02</span></div>
+                <div class="text">收到，我拆成两个线程：一个补文档并跑测试，一个只做慢查询分析（只读、不改代码）。两个都从 main 拉，先不开 PR。</div>
+
+                <div class="thread-card" data-view="thread" data-thread-card="1">
+                  <div class="tc-top">
+                    <span class="tc-icon"><span class="icon"><svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg></span></span>
+                    <span class="tc-title">补全 API 文档并跑测试</span>
+                    <span class="pill working">进行中</span>
+                    <span class="tc-open">打开线程 →</span>
+                  </div>
+                  <div class="tc-bottom">
+                    <span>线程 #1</span><span>·</span><span>独立会话</span><span>·</span><span>deepseek-flash</span>
+                    <span class="spacer"></span><span>已运行 12m</span>
+                  </div>
+                </div>
+
+                <div class="thread-card waiting" data-view="thread" data-thread-card="2">
+                  <div class="tc-top">
+                    <span class="tc-icon"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span></span>
+                    <span class="tc-title">定位 payments 慢查询</span>
+                    <span class="pill waiting">等待你回答</span>
+                    <span class="tc-open">打开线程 →</span>
+                  </div>
+                  <div class="tc-bottom">
+                    <span>线程 #2</span><span>·</span><span>独立会话</span><span>·</span><span>只读模式</span>
+                    <span class="spacer"></span><span class="muted">它问：生产库只读权限要不要用？</span>
+                  </div>
+                </div>
+
+                <div class="suggested" id="suggested-card">
+                  <div class="sg-head">
+                    <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
+                    建议线程（Suggested threads）
+                    <span style="margin-left:auto;font-weight:400;color:var(--label-tertiary)">先等你确认</span>
+                  </div>
+                  <div class="sg-row">
+                    <span class="dot idle"></span>
+                    <span class="sg-title">给 payments 加一个 p95 基准脚本<small>采样 7 天，产出 baseline.md</small></span>
+                    <button class="btn sm ghost start-suggestion">启动</button>
+                  </div>
+                  <div class="sg-row">
+                    <span class="dot idle"></span>
+                    <span class="sg-title">检查 N+1 查询与索引命中<small>只读分析，产出 findings.md</small></span>
+                    <button class="btn sm ghost start-suggestion">启动</button>
+                  </div>
+                  <div class="sg-foot"><button class="btn sm dotted" id="start-all">全部启动</button></div>
+                </div>
+
+                <div class="msg actions" style="margin:-10px 0 0 35px">
+                  <button class="mini-action">复制</button><button class="mini-action">重试</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="msg user">
+              <div class="avatar">你</div>
+              <div class="body">
+                <div class="who">你 <span>14:20</span></div>
+                <div class="text">先跑起来。需要我批准的命令直接在这里告诉我，我再去线程里处理。</div>
+              </div>
+            </div>
+
+            <div class="msg coord">
+              <div class="avatar">C</div>
+              <div class="body">
+                <div class="who"><b>协调者</b><span>14:20</span></div>
+                <div class="text">好，规则记下了：所有命令审批都在线程内等你，不代批。线程 #2 有一个审批挂起了，我把它标成「需要你」。</div>
+
+                <div class="callout approval">
+                  <div class="co-head">
+                    <span class="dot waiting"></span>线程 #2 需要你批准
+                    <span class="pill waiting">Waiting on you</span>
+                  </div>
+                  <div class="co-desc">只读分析需要执行以下命令读取执行计划（不会修改数据）：</div>
+                  <div class="cmd">$ psql "$READONLY_DSN" -c "EXPLAIN (ANALYZE, BUFFERS) SELECT ..."</div>
+                  <div class="co-actions">
+                    <button class="btn sm primary open-thread">打开线程批准</button>
+                    <button class="btn sm ghost" id="approve-btn">批准一次（演示）</button>
+                    <button class="btn sm ghost" id="reject-btn">拒绝</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="time-divider">今天 14:32</div>
+
+            <div class="msg coord">
+              <div class="avatar">C</div>
+              <div class="body">
+                <div class="who"><b>协调者</b><span>14:32</span></div>
+                <div class="text">线程 #1 汇报回来了：文档已补全、测试通过，产出 2 个文件。我先把它们放进 Library。</div>
+
+                <div class="thread-card report" data-view="thread" data-thread-card="1">
+                  <div class="tc-top">
+                    <span class="tc-icon"><span class="icon"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span></span>
+                    <span class="tc-title">线程 #1 汇报：已完成</span>
+                    <span class="pill success">待收尾</span>
+                    <span class="tc-open">查看 →</span>
+                  </div>
+                  <div class="tc-bottom">
+                    <span>pytest 42 passed</span><span>·</span><span>2 个交付物</span>
+                    <span class="spacer"></span>
+                    <button class="btn sm ghost resolve-btn" data-thread="1">收尾</button>
+                  </div>
+                  <div class="deliverables" style="padding:0 13px 11px">
+                    <span class="file-chip"><span class="ext">MD</span>docs/api.md</span>
+                    <span class="file-chip"><span class="ext">LOG</span>pytest-42-passed.txt</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer-wrap">
+          <div class="composer">
+            <div class="quick-chips">
+              <button class="qchip quick-fill">先提出线程方案，等我确认</button>
+              <button class="qchip quick-fill">最多只跑 2 条线程</button>
+              <button class="qchip quick-fill">只汇总结果，不要过程</button>
+              <button class="qchip quick-fill">记住：PR 要先给我看方案</button>
+            </div>
+            <div class="composer-box">
+              <textarea id="composer-input" rows="1" placeholder="在项目对话里说点什么…（协调者会决定自己回答，还是开一个线程）"></textarea>
+              <div class="composer-foot">
+                <button class="hdr-btn" title="附件">＋</button>
+                <span class="model-chip">deepseek-flash · 协调者</span>
+                <span class="spacer"></span>
+                <span>Enter 发送 · Shift+Enter 换行</span>
+                <button class="send-btn" id="send-btn" title="发送">
+                  <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- Right bar ---------- -->
+      <aside class="rightbar" id="rightbar">
+        <div class="rb-tabs">
+          <button class="rb-tab active" data-tab="threads">Threads <span class="dot-badge"></span></button>
+          <button class="rb-tab" data-tab="library">Library <span class="n" style="color:var(--label-tertiary)">12</span></button>
+          <button class="rb-tab" data-tab="settings">Settings</button>
+          <button class="rb-close" id="rb-close" title="收起">✕</button>
+        </div>
+
+        <!-- Threads -->
+        <div class="rb-pane active" id="pane-threads">
+          <div class="ov-section">
+            <div class="ov-head"><span class="dot waiting"></span>需要你 <span class="n">1</span><span class="spacer"></span><span class="tiny">审批 / 回答 / 失败</span></div>
+            <button class="thread-row needs" data-view="thread" data-thread-row="2">
+              <span class="dot waiting tr-dot"></span>
+              <span class="tr-main">
+                <span class="tr-title">定位 payments 慢查询</span>
+                <span class="tr-meta"><span class="pill waiting">等待批准</span><span>线程 #2</span><span>· 8 分钟前</span></span>
+              </span>
+              <span class="tr-actions">
+                <span class="icon-btn" title="打开">↗</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="ov-section">
+            <div class="ov-head"><span class="dot working"></span>进行中 <span class="n">1</span><span class="spacer"></span><span class="tiny">live 状态</span></div>
+            <button class="thread-row" data-view="thread" data-thread-row="1">
+              <span class="dot working tr-dot"></span>
+              <span class="tr-main">
+                <span class="tr-title">补全 API 文档并跑测试</span>
+                <span class="tr-meta"><span class="pill working">运行中</span><span>线程 #1</span><span>· 已运行 12m</span></span>
+              </span>
+              <span class="tr-actions"><span class="icon-btn" title="停止">■</span><span class="icon-btn" title="打开">↗</span></span>
+            </button>
+            <div id="ov-working-extra"></div>
+          </div>
+
+          <div class="ov-section">
+            <div class="ov-head"><span class="dot review"></span>待收 <span class="n">1</span><span class="spacer"></span><span class="tiny">有交付物</span></div>
+            <button class="thread-row" data-view="thread">
+              <span class="dot review tr-dot"></span>
+              <span class="tr-main">
+                <span class="tr-title">补全 API 文档（已汇报）</span>
+                <span class="tr-meta"><span class="pill review">待收尾</span><span>2 个交付物</span><span>· 刚刚</span></span>
+              </span>
+              <span class="tr-actions"><span class="icon-btn" title="收尾">✓</span></span>
+            </button>
+          </div>
+
+          <div class="ov-section">
+            <div class="ov-head"><span class="dot idle"></span>空闲 <span class="n">2</span><span class="spacer"></span><span class="tiny">可继续派活</span></div>
+            <button class="thread-row">
+              <span class="dot idle tr-dot"></span>
+              <span class="tr-main"><span class="tr-title">N+1 查询检查</span><span class="tr-meta"><span>线程 #3</span><span>· 3 天前</span></span></span>
+              <span class="tr-actions"><span class="icon-btn" title="打开">↗</span></span>
+            </button>
+            <button class="thread-row">
+              <span class="dot idle tr-dot"></span>
+              <span class="tr-main"><span class="tr-title">基准脚本 p95</span><span class="tr-meta"><span>线程 #4</span><span>· 5 天前</span></span></span>
+              <span class="tr-actions"><span class="icon-btn" title="打开">↗</span></span>
+            </button>
+          </div>
+
+          <div class="ov-section">
+            <div class="ov-head"><span class="dot success"></span>已收尾 <span class="n">3</span><span class="spacer"></span><button class="tiny" style="color:var(--label-tertiary)">展开</button></div>
+            <div class="thread-row" style="opacity:.62">
+              <span class="dot success tr-dot"></span>
+              <span class="tr-main"><span class="tr-title">接入慢查询日志采样</span><span class="tr-meta"><span>3 天前收尾</span><span>· 可重开</span></span></span>
+              <span class="tr-actions"><span class="icon-btn" title="重开">↻</span></span>
+            </div>
+          </div>
+
+          <div class="usage-card">
+            <div class="uc-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15l3-4 3 2 5-6"/></svg></span>用量与限额</div>
+            <div class="uc-row"><span>今日 tokens</span><b>128.4k</b></div>
+            <div class="uc-row"><span>线程并发</span><b>2 / 4</b></div>
+            <div class="uc-row"><span>今日新建线程</span><b>5 / 200</b></div>
+            <div class="bar"><i style="width:32%"></i></div>
+          </div>
+        </div>
+
+        <!-- Library -->
+        <div class="rb-pane" id="pane-library">
+          <div class="lib-drop" id="lib-drop">
+            <b>拖入文件或文件夹</b><br/>上传是<b>快照拷贝</b>；修改本地文件后需重新上传并 <b>Replace</b>。单次 ≤100 文件 / 2GB。
+          </div>
+          <div class="lib-toolbar">
+            <div class="lib-search"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span><input id="lib-filter" placeholder="搜索资料…"/></div>
+            <button class="btn sm ghost" id="new-folder-btn">＋ 新建文件夹</button>
+          </div>
+          <div class="lib-crumb" id="lib-crumb">
+            <button data-folder="root" class="crumb-btn">全部文件</button>
+            <span id="lib-crumb-path"></span>
+            <span class="lib-crumb-hint" id="lib-count"></span>
+          </div>
+          <div class="folder-grid" id="folder-grid"></div>
+          <div class="lib-list" id="lib-list"></div>
+          <div class="lib-note">线程只能<b>读取</b> Library；入库必须由 Host 复制快照（记录来源线程）。文件夹是项目内组织层，移动/重命名不改变不可变字节与内容寻址 ID；文件可拖到文件夹上或用「移动」菜单。</div>
+        </div>
+
+        <!-- Settings -->
+        <div class="rb-pane" id="pane-settings">
+          <div class="set-section">
+            <div class="set-title">General</div>
+            <div class="set-field">
+              <div class="set-label">项目名称</div>
+              <input class="set-input" value="Payments API 性能优化"/>
+            </div>
+            <div class="set-field">
+              <div class="set-label">目标（一句话）</div>
+              <input class="set-input" value="把 p95 延迟压到 200ms 以下"/>
+            </div>
+          </div>
+          <div class="set-section">
+            <div class="set-title">Memory</div>
+            <div class="set-field">
+              <div class="set-label">项目指令 <span class="muted" style="font-weight:400">（每个新线程注入）</span></div>
+              <textarea class="set-area">从 main 拉分支；开 draft PR 前先给我方案。
+完成前跑 make test / make lint，并在汇报里贴摘要。
+拿不到 repo / secret / API 时，第一条消息说明并停下，不要 substitute 或猜。
+不要 merge、force-push 或改 CI 配置。</textarea>
+              <div class="counter">5,120 / 16,000 字符</div>
+            </div>
+            <div class="set-label" style="margin-top:2px">项目记忆 <span class="muted" style="font-weight:400">· MEMORY.md 索引</span></div>
+            <div class="lib-meta muted" style="padding:5px 0 0;font-size:11px">6 条事实 · 2.1KB / 4KB 预算 · Claude 自写，可编辑</div>
+          </div>
+          <div class="set-section">
+            <div class="set-title">Models</div>
+            <div class="set-row">
+              <div class="set-field">
+                <div class="set-label">协调者</div>
+                <select class="set-select"><option>deepseek-flash</option><option>deepseek-pro</option></select>
+              </div>
+              <div class="set-field">
+                <div class="set-label">线程</div>
+                <select class="set-select"><option>deepseek-flash</option><option>deepseek-pro</option></select>
+              </div>
+            </div>
+            <div class="set-field">
+              <div class="set-label">自动收尾</div>
+              <select class="set-select"><option>7 天无活动后收尾</option><option>3 天</option><option>30 天</option><option>仅手动</option></select>
+            </div>
+          </div>
+          <div class="set-section">
+            <div class="set-title">生命周期</div>
+            <div class="lifecycle">
+              <button class="btn ghost">暂停项目</button>
+              <button class="btn ghost">归档</button>
+            </div>
+            <div class="danger-zone">
+              <div class="dz-title">删除项目</div>
+              <div class="dz-desc">删除项目记录、项目记忆与 Library 文件；线程会话将归档保留（DSH 不物理删除会话）。不可撤销。</div>
+              <button class="btn sm danger">删除项目…</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ---------- View 3: Thread ---------- -->
+    <section class="view thread-view" id="view-thread">
+      <header class="thread-header">
+        <div class="crumb">
+          <button data-view="home">Projects</button><span class="sep">/</span>
+          <button data-view="workbench">Payments API 性能优化</button><span class="sep">/</span>
+          <span class="cur">线程 #1 · 补全 API 文档</span>
+          <span class="pill working" id="thread-status-pill" style="margin-left:2px">进行中</span>
+        </div>
+        <div class="thread-tools">
+          <span class="model-chip">deepseek-flash</span>
+          <button class="btn sm ghost">查看变更</button>
+          <button class="btn sm ghost" id="stop-btn">■ 停止</button>
+          <button class="btn sm primary resolve-btn" data-thread="1">收尾</button>
+        </div>
+      </header>
+      <div class="thread-body">
+        <div class="thread-inner">
+          <div class="thread-banner">
+            <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>
+            这是项目下的独立会话（线程 #1）。它有自己的上下文与工作目录，启动时已注入项目指令、记忆索引与 Library 清单。<span style="margin-left:auto">项目记忆 2.1KB</span>
+          </div>
+
+          <div class="msg user">
+            <div class="avatar">任</div>
+            <div class="body">
+              <div class="who">任务简报 <span class="pill">spawn</span><span>14:02</span></div>
+              <div class="text">补全 docs/api.md 的接口说明并运行测试。项目指令：从 main 拉分支、先给方案、完成前跑 make test 与 make lint。完成后用 project_report 汇报。</div>
+            </div>
+          </div>
+
+          <div class="tool-row"><span class="k">›</span><span class="t">read</span><span class="v">docs/api.md</span><span class="ok">ok</span></div>
+          <div class="tool-row"><span class="k">›</span><span class="t">bash</span><span class="v">git switch -c docs/api-completion</span><span class="ok">ok</span></div>
+          <div class="tool-row"><span class="k">›</span><span class="t">edit</span><span class="v">docs/api.md  (+142 −8)</span><span class="ok">ok</span></div>
+          <div class="tool-row"><span class="k">›</span><span class="t">bash</span><span class="v">make test</span><span class="ok">42 passed</span></div>
+
+          <div class="msg coord">
+            <div class="avatar">T</div>
+            <div class="body">
+              <div class="who"><b>线程 #1</b><span class="pill brand">projects-thread</span><span>14:31</span></div>
+              <div class="text">API 文档已补全，新增 14 个接口的请求/响应示例；测试 42 个全部通过。已在分支 docs/api-completion 上，未 commit（等你确认提交信息）。</div>
+              <div class="callout report" style="border-color:rgba(63,185,80,.3)">
+                <div class="co-head"><span class="dot success"></span>project_report<button class="btn sm ghost" style="margin-left:auto">发送给协调者</button></div>
+                <div class="co-desc">summary · 2 个交付物 · 无阻塞；建议 commit message：<span class="mono">docs: complete API reference</span></div>
+                <div class="deliverables">
+                  <span class="file-chip"><span class="ext">MD</span>docs/api.md</span>
+                  <span class="file-chip"><span class="ext">LOG</span>pytest-42-passed.txt</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="avatar">你</div>
+            <div class="body">
+              <div class="who">你 <span>14:35</span></div>
+              <div class="text">commit message 可以，顺便把 README 的 API 示例也同步一下。</div>
+            </div>
+          </div>
+
+          <div class="tool-row"><span class="k">›</span><span class="t">edit</span><span class="v">README.md  (+18 −4)</span><span class="ok">ok</span></div>
+          <div class="tool-row"><span class="k">›</span><span class="t">bash</span><span class="v">git commit -m "docs: complete API reference"</span><span class="ok">ok</span></div>
+
+          <div class="msg coord">
+            <div class="avatar">T</div>
+            <div class="body">
+              <div class="who"><b>线程 #1</b><span>14:38</span></div>
+              <div class="text">已提交，README 示例同步完成。可以收尾了，或让我继续开 PR（项目指令要求先给方案）。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="composer-wrap thread-composer">
+        <div class="composer">
+          <div class="composer-box">
+            <textarea rows="1" placeholder="发送给这个线程（只影响线程 #1，不会经过协调者）…"></textarea>
+            <div class="composer-foot">
+              <button class="hdr-btn">＋</button>
+              <span class="model-chip">deepseek-flash · 线程</span>
+              <span class="spacer"></span>
+              <span>Enter 发送 · Stop 停止</span>
+              <button class="send-btn"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ======================= Floating controls ======================= -->
+<button class="annot-btn" id="annot-btn">
+  <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg></span>
+  设计标注
+</button>
+<button class="theme-toggle" id="theme-toggle" title="切换明暗主题">
+  <span class="icon" id="theme-icon"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></span>
+</button>
+
+<div class="annot-panel" id="annot-panel">
+  <h4>UI 落点 ↔ DSH 扩展点</h4>
+  <p>这个原型按现有 DSH Web UI 的 Slot 体系设计，全部为「新增包 + 挂载到公开 seat」，不改布局包。</p>
+  <div class="annot-item"><span class="slot">sidebar.panellist</span><span class="desc">左侧 Projects 一级入口（图标 + 数量）→ <code>main</code> key <code>projects</code> 的 Projects 首页。</span></div>
+  <div class="annot-item"><span class="slot">main: projects</span><span class="desc">Projects 首页：项目卡、新建项目、最近活动。全局面板（无会话绑定），参考 Plugins 页实现。</span></div>
+  <div class="annot-item"><span class="slot">conversation</span><span class="desc">项目工作台 = 协调者会话：复用现有 ui-conversation，不新写聊天壳。</span></div>
+  <div class="annot-item"><span class="slot">conversation.header.leading</span><span class="desc">面包屑：Projects / 项目名 / 项目对话；线程页显示 Projects / 项目 / 线程 #n。</span></div>
+  <div class="annot-item"><span class="slot">conversation.session.header.actions</span><span class="desc">Header 右侧：<b>Threads</b> 面板开关（带「需要你」圆点）、⋯ 菜单。</span></div>
+  <div class="annot-item"><span class="slot">library.folders</span><span class="desc">Library 的文件夹是项目域内的组织层（folderId）；移动/重命名不改变不可变字节与引用 ID，线程只读。</span></div>
+  <div class="annot-item"><span class="slot">conversation.chat.*</span><span class="desc">线程卡 / 汇报卡 / 审批卡 / Suggested threads 卡片：走 Chat 的 tool view 与 turnTail 扩展（M3 美化；M2 先普通工具结果 + Overview 行）。</span></div>
+  <div class="annot-item"><span class="slot">sidebarRightTabs</span><span class="desc">右侧栏 tab type：<code>project-threads</code>（默认首个 tab）、<code>project-library</code>、<code>project-settings</code>；body 注册到 <code>sidebar.right.pane.tab</code>。</span></div>
+  <div class="annot-item"><span class="slot">ctx.sidebarRight.openTab</span><span class="desc">打开项目时自动打开 <b>Threads</b> tab；「需要你」圆点来自 pendingInteraction 投影聚合。</span></div>
+  <div class="annot-item"><span class="slot">sidebar.workspaces.session.menu.item</span><span class="desc">「从会话创建项目 / 移入项目」入口挂在现有会话行菜单上（M4）。</span></div>
+  <div class="annot-item"><span class="slot">shell.overlay</span><span class="desc">新建项目 / 删除确认 / 项目设置等模态层，复用现有浮层。</span></div>
+  <div class="annot-item"><span class="slot">project domain + tools</span><span class="desc">项目/线程/资料库/记忆数据来自新 <code>projects</code> storage domain；聊天里的卡片来自 <code>project_*</code> 工具结果与线程 report。</span></div>
+  <div class="annot-item"><span class="slot">pendingInteraction</span><span class="desc">Threads 的「需要你」= 审批 / 问题 / 失败 / 线程 report 的 needs 字段，不双写。</span></div>
+</div>
+
+<!-- ======================= New project modal ======================= -->
+<div class="modal-mask" id="new-project-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>新建项目</h3>
+      <span class="pill brand">Project</span>
+      <button class="x" id="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="set-field">
+        <div class="set-label">名称 <span class="req">*</span></div>
+        <input class="set-input" id="np-name" placeholder="例如：Payments API 性能优化"/>
+      </div>
+      <div class="set-field">
+        <div class="set-label">目标（可选，一行）</div>
+        <input class="set-input" id="np-goal" placeholder="例如：把 p95 延迟压到 200ms 以下"/>
+      </div>
+      <div class="set-field">
+        <div class="set-label">项目目录（可选）</div>
+        <input class="set-input" placeholder="/Users/you/workspace/payments-api"/>
+        <div class="hint">不填也可以：纯文档项目也能用，资料放 Library，线程在项目工作目录里跑。</div>
+      </div>
+      <div class="set-field">
+        <div class="set-label">项目指令（可选，≤16,000 字符）</div>
+        <textarea class="set-area" id="np-instructions" placeholder="每个新线程都会收到的常驻规则…"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="modal-cancel">取消</button>
+      <button class="btn primary" id="modal-create">创建项目</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="new-folder-modal">
+  <div class="modal" style="width:420px">
+    <div class="modal-head"><h3>新建文件夹</h3><button class="x" id="nf-close">✕</button></div>
+    <div class="modal-body">
+      <div class="set-field"><div class="set-label">文件夹名称 <span class="req">*</span></div>
+      <input class="set-input" id="nf-name" placeholder="例如：数据分析 / 合同原件 / 输出报告"/></div>
+      <div class="hint">文件夹只是组织层；移动文件不会改变文件字节或引用 ID。</div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" id="nf-cancel">取消</button><button class="btn primary" id="nf-create">创建</button></div>
+  </div>
+</div>
+<div class="modal-mask" id="move-modal">
+  <div class="modal" style="width:440px">
+    <div class="modal-head"><h3>移动文件</h3><span class="pill" id="move-file-name"></span><button class="x" id="mv-close">✕</button></div>
+    <div class="modal-body"><div class="move-list" id="move-list"></div></div>
+    <div class="modal-foot"><button class="btn ghost" id="mv-cancel">取消</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $  = (s, el=document) => el.querySelector(s);
+  const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+  const app = $('#app');
+  const toastEl = $('#toast');
+  let toastTimer = null;
+
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 2200);
+  }
+
+  /* ---------------- views ---------------- */
+  function showView(name){
+    $$('.view').forEach(v=>v.classList.remove('active'));
+    const view = $('#view-'+name);
+    if(view) view.classList.add('active');
+    // sidebar highlight
+    $$('.mini-item').forEach(b=>b.classList.remove('active'));
+    if(name==='workbench'){ $('.mini-item')?.classList.add('active'); }
+    if(name==='home'){ $('.nav-item[data-view="home"]')?.classList.add('active'); }
+    // scroll conv to bottom
+    if(name==='workbench'){
+      const body = $('#conv-body');
+      if(body) setTimeout(()=>{ body.style.scrollBehavior='auto'; body.scrollTop = body.scrollHeight; }, 150);
+    }
+    if(name==='thread'){
+      const body = $('.thread-body');
+      if(body) setTimeout(()=>{ body.style.scrollBehavior='auto'; body.scrollTop = body.scrollHeight; }, 150);
+    }
+  }
+  $$('[data-view]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const v = el.getAttribute('data-view');
+      if(v) showView(v);
+    });
+  });
+  $$('.nav-item[data-view]').forEach(el=>el.addEventListener('click', ()=>{
+    $$('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+  }));
+
+  /* ---------------- theme ---------------- */
+  const themeToggle = $('#theme-toggle');
+  themeToggle.addEventListener('click', ()=>{
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+  });
+
+  /* ---------------- right bar tabs ---------------- */
+  $$('.rb-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      $$('.rb-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      $$('.rb-pane').forEach(p=>p.classList.remove('active'));
+      const pane = $('#pane-'+tab.dataset.tab);
+      if(pane) pane.classList.add('active');
+    });
+  });
+  const rightbar = $('#rightbar');
+  $('#rb-close').addEventListener('click', ()=>{ rightbar.style.display='none'; toast('已收起 Overview，可从 Header 重新打开'); });
+  $('#overview-toggle').addEventListener('click', ()=>{
+    if(rightbar.style.display==='none'){ rightbar.style.display='flex'; $('#overview-toggle').classList.add('on'); }
+    else { rightbar.style.display='none'; $('#overview-toggle').classList.remove('on'); }
+  });
+
+  /* ---------------- modal ---------------- */
+  const modal = $('#new-project-modal');
+  function openModal(){ modal.classList.add('open'); setTimeout(()=>$('#np-name')?.focus(),50); }
+  function closeModal(){ modal.classList.remove('open'); }
+  $('#new-project-btn').addEventListener('click', openModal);
+  $('#new-project-card').addEventListener('click', openModal);
+  $('#modal-close').addEventListener('click', closeModal);
+  $('#modal-cancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){ closeModal(); annotPanel.classList.remove('open'); }
+  });
+  $('#modal-create').addEventListener('click', ()=>{
+    const name = ($('#np-name').value || '').trim();
+    if(!name){ toast('项目名称必填'); $('#np-name').focus(); return; }
+    const goal = ($('#np-goal').value || '').trim() || '（未设置目标）';
+    const card = document.createElement('button');
+    card.className = 'project-card';
+    card.dataset.view = 'workbench';
+    card.innerHTML = `
+      <div class="pc-head"><span class="pc-avatar">${escapeHtml(name.slice(0,1))}</span><span class="pc-name">${escapeHtml(name)}</span></div>
+      <div class="pc-goal">${escapeHtml(goal)}</div>
+      <div class="pc-meta"><span class="pill idle">新建</span><span class="spacer"></span><span>Library 0</span><span>·</span><span>刚刚</span></div>`;
+    card.addEventListener('click', ()=>showView('workbench'));
+    $('#project-grid').insertBefore(card, $('#new-project-card'));
+    closeModal();
+    $('#np-name').value=''; $('#np-goal').value=''; $('#np-instructions').value='';
+    toast('已创建项目「'+name+'」，协调者会话初始化中…');
+    setTimeout(()=>showView('workbench'), 500);
+  });
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ---------------- composer ---------------- */
+  const input = $('#composer-input');
+  const convBody = $('#conv-body');
+  const convInner = $('.conv-inner', convBody);
+  function addMsg(text){
+    const tpl = document.createElement('div');
+    tpl.className = 'msg user';
+    tpl.innerHTML = `<div class="avatar">你</div><div class="body"><div class="who">你 <span>刚刚</span></div><div class="text">${escapeHtml(text)}</div></div>`;
+    convInner.appendChild(tpl);
+    convBody.scrollTop = convBody.scrollHeight;
+    // canned coordinator reply
+    setTimeout(()=>{
+      const reply = document.createElement('div');
+      reply.className = 'msg coord';
+      reply.innerHTML = `<div class="avatar">C</div><div class="body">
+        <div class="who"><b>协调者</b><span class="pill brand">projects-coordinator</span><span>刚刚</span></div>
+        <div class="text">收到。原型里这是演示回复——真实实现中，这里会由协调者模型决定「就地回答 / 新开线程 / 复用线程」，并调用 <span class="mono">project_spawn_thread</span> 或 <span class="mono">project_list_threads</span>。</div>
+        </div>`;
+      convInner.appendChild(reply);
+      convBody.scrollTop = convBody.scrollHeight;
+    }, 600);
+  }
+  function sendFromComposer(){
+    const text = input.value.trim();
+    if(!text) return;
+    input.value=''; input.style.height='auto';
+    addMsg(text);
+  }
+  $('#send-btn').addEventListener('click', sendFromComposer);
+  input.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendFromComposer(); }
+  });
+  input.addEventListener('input', ()=>{
+    input.style.height='auto';
+    input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+  });
+  $$('.quick-fill').forEach(b=>b.addEventListener('click', ()=>{
+    input.value = b.textContent.trim();
+    input.focus();
+  }));
+
+  /* ---------------- suggested threads ---------------- */
+  function addThreadRow(title){
+    const row = document.createElement('button');
+    row.className = 'thread-row';
+    row.dataset.view = 'thread';
+    row.innerHTML = `<span class="dot working tr-dot"></span>
+      <span class="tr-main"><span class="tr-title">${escapeHtml(title)}</span>
+      <span class="tr-meta"><span class="pill working">运行中</span><span>新线程</span><span>· 刚刚</span></span></span>
+      <span class="tr-actions"><span class="icon-btn">↗</span></span>`;
+    row.addEventListener('click', ()=>showView('thread'));
+    $('#ov-working-extra').appendChild(row);
+  }
+  $$('.start-suggestion').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = btn.closest('.sg-row');
+      const title = $('.sg-title', row).textContent.split('（')[0].trim();
+      row.remove();
+      addThreadRow(title);
+      toast('已启动线程：'+title);
+      if(!$$('.sg-row').length) $('#suggested-card')?.remove();
+    });
+  });
+  $('#start-all')?.addEventListener('click', ()=>{
+    $$('.sg-row').forEach(r=>{
+      const title = $('.sg-title', r).textContent.split('（')[0].trim();
+      addThreadRow(title);
+    });
+    $('#suggested-card')?.remove();
+    toast('已启动 2 条建议线程');
+  });
+
+  /* ---------------- 线程状态（对话卡片 ↔ Threads 面板 ↔ 线程页同步） ---------------- */
+  const threadState = {
+    1: { status:'working', label:'进行中' },
+    2: { status:'waiting', label:'等待你回答' }
+  };
+  let currentThread = 1;
+
+  function applyThreadState(id){
+    const st = threadState[id]; if(!st) return;
+    document.querySelectorAll('[data-thread-card="'+id+'"]').forEach(card=>{
+      const pill = card.querySelector('.pill');
+      if(pill){
+        pill.className = 'pill ' + st.status;
+        pill.textContent = st.label;
+      }
+      if(id === 1 && st.status === 'resolved'){
+        card.classList.add('resolved');
+        const b = card.querySelector('.tc-bottom .resolve-btn');
+        if(b){ b.textContent = '已收尾'; b.classList.add('done'); }
+      }
+    });
+    document.querySelectorAll('[data-thread-row="'+id+'"]').forEach(row=>{
+      const d = row.querySelector('.tr-dot');
+      if(d) d.className = 'dot ' + st.status + ' tr-dot';
+      const p = row.querySelector('.pill');
+      if(p){ p.className = 'pill ' + st.status; p.textContent = st.label; }
+    });
+    const hp = document.getElementById('thread-status-pill');
+    if(hp && currentThread === id){ hp.className = 'pill ' + st.status; hp.textContent = st.label; }
+    const rb = document.querySelector('.resolve-btn[data-thread="'+id+'"]');
+    if(rb && currentThread === id){ rb.textContent = st.status === 'resolved' ? '重新打开' : '收尾'; }
+  }
+
+  $$('.resolve-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const id = btn.dataset.thread || '1';
+      const cur = threadState[id] ? threadState[id].status : 'working';
+      if(cur === 'resolved'){ threadState[id] = { status:'working', label:'进行中' }; toast('线程已重新打开'); }
+      else { threadState[id] = { status:'resolved', label:'已收尾' }; toast('线程已收尾（Resolved），可随时重新打开'); }
+      applyThreadState(id);
+    });
+  });
+  $$('.open-thread').forEach(btn=>btn.addEventListener('click', ()=>showView('thread')));
+
+  const stopBtn = document.getElementById('stop-btn');
+  stopBtn?.addEventListener('click', ()=>{
+    threadState[1] = { status:'idle', label:'已停止' };
+    applyThreadState(1);
+    toast('已停止线程 #1 的当前 turn（队列保留）');
+  });
+  const approveBtn = document.getElementById('approve-btn');
+  approveBtn?.addEventListener('click', ()=>{
+    threadState[2] = { status:'working', label:'进行中' };
+    applyThreadState(2);
+    const c = approveBtn.closest('.callout.approval');
+    if(c){ c.classList.remove('approval'); c.querySelector('.co-head').innerHTML = '<span class="dot working"></span>线程 #2 已获批准 <span class="pill working">进行中</span>'; c.querySelector('.co-actions').remove(); }
+    toast('已批准：线程 #2 继续执行（状态同步到对话卡片与 Threads 面板）');
+  });
+  const rejectBtn = document.getElementById('reject-btn');
+  rejectBtn?.addEventListener('click', ()=>{
+    threadState[2] = { status:'idle', label:'已拒绝' };
+    applyThreadState(2);
+    toast('已拒绝该命令，线程 #2 已暂停');
+  });
+
+  /* ---------------- 左侧项目树（Claude 式展开/收起） ---------------- */
+  document.querySelectorAll('.proj-group').forEach(g=>{
+    const row = g.querySelector('.proj-row');
+    const chev = g.querySelector('.chev');
+    if(!row || !chev) return;
+    chev.addEventListener('click', e=>{
+      e.stopPropagation();
+      g.classList.toggle('open');
+      chev.textContent = g.classList.contains('open') ? '▾' : '▸';
+    });
+    row.addEventListener('click', ()=>{
+      if(!row.dataset.view){
+        g.classList.toggle('open');
+        chev.textContent = g.classList.contains('open') ? '▾' : '▸';
+      }
+    });
+  });
+
+  /* ---------------- Library：文件夹管理 ---------------- */
+  const library = {
+    currentFolder: 'root',
+    folders: [
+      { id:'f-docs',   name:'文档' },
+      { id:'f-data',   name:'数据' },
+      { id:'f-report', name:'报告' }
+    ],
+    files: [
+      { id:'1', name:'docs-api.md', type:'md', size:'18.2KB', source:'线程产出', srcClass:'thread', note:'来自线程 #1', folderId:null },
+      { id:'2', name:'payments-慢查询分析.pdf', type:'pdf', size:'2.4MB', source:'用户上传', srcClass:'', note:'2 天前', folderId:'f-data' },
+      { id:'3', name:'p95-baseline-7d.xlsx', type:'xlsx', size:'312KB', source:'线程产出', srcClass:'thread', note:'来自线程 #4', folderId:'f-data' },
+      { id:'4', name:'slow-queries-2026Q3.csv', type:'csv', size:'1.1MB', source:'用户上传', srcClass:'', note:'5 天前', folderId:'f-data' },
+      { id:'5', name:'project-memory-notes.md', type:'md', size:'2.1KB', source:'自动维护', srcClass:'thread', note:'10 分钟前', folderId:'f-docs' },
+      { id:'6', name:'contracts-2026-09.zip', type:'zip', size:'48MB', source:'用户上传', srcClass:'', note:'昨天', folderId:null }
+    ]
+  };
+  const FILE_ICON = { md:['md','MD'], pdf:['pdf','PDF'], xlsx:['xlsx','XLS'], csv:['csv','CSV'], zip:['zip','ZIP'] };
+  const libList = document.getElementById('lib-list');
+  const folderGrid = document.getElementById('folder-grid');
+  const libCount = document.getElementById('lib-count');
+  const libCrumbPath = document.getElementById('lib-crumb-path');
+
+  function folderName(id){ return id==='root' ? '全部文件' : (library.folders.find(f=>f.id===id)?.name || '未知'); }
+  function countFiles(id){ return library.files.filter(f=>f.folderId===id).length; }
+
+  function renderLibrary(){
+    const cur = library.currentFolder;
+    // folders
+    folderGrid.innerHTML = '';
+    if(cur === 'root'){
+      library.folders.forEach(f=>{
+        const el = document.createElement('button');
+        el.className = 'folder-card';
+        el.dataset.folderId = f.id;
+        el.innerHTML = '<span class="fic"><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></span></span>'
+          + '<span style="min-width:0"><span class="fname">'+escapeHtml(f.name)+'</span><span class="fcount">'+countFiles(f.id)+' 个文件</span></span>'
+          + '<span class="fmore" title="重命名/删除（原型未实现）">⋯</span>';
+        el.addEventListener('click', ()=>{ library.currentFolder = f.id; renderLibrary(); });
+        el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('dragover'); });
+        el.addEventListener('dragleave', ()=>el.classList.remove('dragover'));
+        el.addEventListener('drop', e=>{
+          e.preventDefault(); el.classList.remove('dragover');
+          const id = e.dataTransfer.getData('text/file-id');
+          moveFile(id, f.id);
+        });
+        folderGrid.appendChild(el);
+      });
+      const nf = document.createElement('button');
+      nf.className = 'folder-card new-folder';
+      nf.innerHTML = '<span class="fic">＋</span><span class="fname">新建文件夹</span>';
+      nf.addEventListener('click', ()=>openFolderModal());
+      folderGrid.appendChild(nf);
+    }
+    // breadcrumb
+    libCrumbPath.innerHTML = '';
+    if(cur !== 'root'){
+      const sep = document.createElement('span'); sep.textContent = '/'; sep.className = 'tertiary';
+      const b = document.createElement('button'); b.className = 'crumb-btn'; b.textContent = folderName(cur);
+      libCrumbPath.appendChild(sep); libCrumbPath.appendChild(b);
+    }
+    if(libCount) libCount.textContent = '共 ' + library.files.length + ' 个文件 · ' + library.folders.length + ' 个文件夹';
+    // files
+    libList.innerHTML = '';
+    const files = library.files.filter(f=>f.folderId === (cur==='root' ? null : cur));
+    if(!files.length){
+      const empty = document.createElement('div');
+      empty.className = 'ov-empty';
+      empty.textContent = '这个位置还没有文件。拖入文件，或从其它文件夹移动过来。';
+      libList.appendChild(empty);
+    }
+    files.forEach(f=>{
+      const [cls, ext] = FILE_ICON[f.type] || ['md','FILE'];
+      const row = document.createElement('div');
+      row.className = 'lib-item';
+      row.draggable = true;
+      row.dataset.fileId = f.id;
+      row.innerHTML = '<span class="file-icon '+cls+'">'+ext+'</span>'
+        + '<span class="lib-main"><span class="lib-name">'+escapeHtml(f.name)+'</span>'
+        + '<span class="lib-meta"><span class="src-tag '+f.srcClass+'">'+f.source+'</span><span>'+f.size+'</span><span>'+f.note+'</span></span></span>'
+        + '<button class="move-btn" title="移动到文件夹">移动</button>';
+      row.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/file-id', f.id); row.classList.add('dragging'); });
+      row.addEventListener('dragend', ()=>row.classList.remove('dragging'));
+      row.querySelector('.move-btn').addEventListener('click', e=>{ e.stopPropagation(); openMoveModal(f.id); });
+      row.addEventListener('click', ()=>toast('原型：预览文件「'+f.name+'」（真实实现走右侧栏文件预览 tab）'));
+      libList.appendChild(row);
+    });
+  }
+
+  function moveFile(fileId, folderId){
+    const f = library.files.find(x=>x.id===String(fileId));
+    if(!f) return;
+    const from = f.folderId;
+    if(from === folderId){ toast('文件已在该位置'); return; }
+    f.folderId = folderId === 'root' ? null : folderId;
+    renderLibrary();
+    toast('已移动「'+f.name+'」到「'+folderName(folderId)+'」');
+  }
+
+  // new folder modal
+  const folderModal = document.getElementById('new-folder-modal');
+  function openFolderModal(){
+    folderModal.classList.add('open');
+    setTimeout(()=>document.getElementById('nf-name')?.focus(), 50);
+  }
+  function closeFolderModal(){ folderModal.classList.remove('open'); }
+  document.getElementById('new-folder-btn')?.addEventListener('click', openFolderModal);
+  document.getElementById('nf-close')?.addEventListener('click', closeFolderModal);
+  document.getElementById('nf-cancel')?.addEventListener('click', closeFolderModal);
+  folderModal?.addEventListener('click', e=>{ if(e.target===folderModal) closeFolderModal(); });
+  document.getElementById('nf-create')?.addEventListener('click', ()=>{
+    const name = (document.getElementById('nf-name').value || '').trim();
+    if(!name){ toast('文件夹名称不能为空'); return; }
+    if(library.folders.some(f=>f.name===name)){ toast('已存在同名文件夹'); return; }
+    library.folders.push({ id:'f-'+Date.now(), name });
+    document.getElementById('nf-name').value = '';
+    closeFolderModal();
+    renderLibrary();
+    toast('已创建文件夹「'+name+'」');
+  });
+
+  // move modal
+  const moveModal = document.getElementById('move-modal');
+  const moveList = document.getElementById('move-list');
+  let movingFileId = null;
+  function openMoveModal(fileId){
+    movingFileId = fileId;
+    const f = library.files.find(x=>x.id===fileId);
+    document.getElementById('move-file-name').textContent = f ? f.name : '';
+    moveList.innerHTML = '';
+    const dests = [{ id:'root', name:'全部文件（根目录）' }, ...library.folders.map(f=>({ id:f.id, name:f.name }))];
+    dests.forEach(d=>{
+      const b = document.createElement('button');
+      b.className = 'move-opt';
+      const active = (f && (f.folderId || 'root') === d.id);
+      b.innerHTML = '<span class="ic">'+(d.id==='root'?'⌂':'▢')+'</span><span>'+escapeHtml(d.name)+'</span><span class="cnt">'+(active?'当前':'')+'</span>';
+      b.addEventListener('click', ()=>{ moveFile(movingFileId, d.id); closeMoveModal(); });
+      moveList.appendChild(b);
+    });
+    moveModal.classList.add('open');
+  }
+  function closeMoveModal(){ moveModal.classList.remove('open'); }
+  document.getElementById('mv-close')?.addEventListener('click', closeMoveModal);
+  document.getElementById('mv-cancel')?.addEventListener('click', closeMoveModal);
+  moveModal?.addEventListener('click', e=>{ if(e.target===moveModal) closeMoveModal(); });
+  document.querySelector('#lib-crumb [data-folder="root"]')?.addEventListener('click', ()=>{ library.currentFolder='root'; renderLibrary(); });
+
+  // upload demo
+  let uploadSeq = 0;
+  document.getElementById('lib-drop')?.addEventListener('click', ()=>{
+    uploadSeq += 1;
+    library.files.push({ id:'u-'+Date.now(), name:'上传的文件-'+uploadSeq+'.pdf', type:'pdf', size:'1.2MB', source:'用户上传', srcClass:'', note:'刚刚', folderId: library.currentFolder==='root' ? null : library.currentFolder });
+    renderLibrary();
+    toast('已上传（演示）：快照拷贝入库，线程只读');
+  });
+  renderLibrary();
+
+
+  /* ---------------- annotation ---------------- */
+  const annotPanel = $('#annot-panel');
+  $('#annot-btn').addEventListener('click', ()=>{
+    annotPanel.classList.toggle('open');
+    $('#annot-btn').classList.toggle('active', annotPanel.classList.contains('open'));
+  });
+
+  /* ---------------- import session ---------------- */
+  $('#import-session').addEventListener('click', ()=>toast('原型：从已有会话创建项目（M4）'));
+
+  /* ---------------- library upload ---------------- */
+  $('#lib-drop').addEventListener('click', ()=>{
+    toast('原型：选择文件 → 复制快照入库（Readonly for threads）');
+  });
+
+  /* ---------------- keyboard: Cmd/Ctrl+K focus search ---------------- */
+  document.addEventListener('keydown', e=>{
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){
+      e.preventDefault();
+      showView('home');
+      setTimeout(()=>$('#home-search-input')?.focus(), 60);
+    }
+  });
+
+  // initial — 支持 ?view=home|workbench|thread 与 ?theme=light，方便截图/演示
+  const params = new URLSearchParams(location.search);
+  if(params.get('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+  const initialView = params.get('view');
+  if(initialView && ['home','workbench','thread'].includes(initialView)) showView(initialView);
+  else showView('home');
+  if(params.get('annot') === '1'){
+    setTimeout(()=>{ document.getElementById('annot-panel').classList.add('open');
+      document.getElementById('annot-btn').classList.add('active'); }, 250);
+  }
+  const initialTab = params.get('tab');
+  if(initialTab && ['threads','library','settings'].includes(initialTab)){
+    setTimeout(()=>document.querySelector('.rb-tab[data-tab="'+initialTab+'"]')?.click(), 120);
+  }
+  const initialFolder = params.get('folder');
+  if(initialFolder && library.folders.some(f=>f.id===initialFolder)){
+    library.currentFolder = initialFolder;
+    renderLibrary();
+  }
+})();
+</script>
+</body>
+</html>
