@@ -188,7 +188,7 @@ export function apply(ctx, config = {}) {
       try {
         const r = readRegistry()
         const current = r.projects.find((p) => p.id === r.currentId) || r.projects[0] || null
-        json(res, 200, { currentId: r.currentId, projects: r.projects.map((p) => ({ id: p.id, title: p.title, goal: p.goal, dir: p.dir })), current: projectState(current) })
+        json(res, 200, { currentId: r.currentId, projects: r.projects.map((p) => ({ id: p.id, title: p.title, goal: p.goal, dir: p.dir })), projectDirs: r.projects.map((p) => p.dir), current: projectState(current) })
       } catch (err) { json(res, 500, { error: String(err && err.message ? err.message : err) }) }
     } })
     webServer.register({ kind: 'exact', path: '/dsh-projects/events', handler: (req, res) => {

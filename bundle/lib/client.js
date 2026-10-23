@@ -11,6 +11,7 @@ window.__ModuleLoader__.load({
     const chip = (text, color) => h('span', { style: { fontSize: 11, padding: '2px 8px', borderRadius: 20, background: color || 'var(--dsw-alias-bg-layer-2, #f1f5fd)', color: 'var(--dsw-alias-label-secondary)' } }, text)
     const label = (t) => h('div', { style: { fontSize: 11, fontWeight: 650, color: M.color, marginBottom: 6, letterSpacing: '.3px', textTransform: 'uppercase' } }, t)
 
+    let layoutService = null
     function api(path, body) {
       return fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined)
         .then((r) => r.json())
@@ -244,11 +245,61 @@ window.__ModuleLoader__.load({
                 (cur.library.folders || []).map((f) => h('div', { key: f, style: { fontSize: 12, padding: '4px 2px' } }, '📁 ' + f)),
                 (cur.library.files || []).map((f) => h('div', { key: f, style: { fontSize: 12, padding: '3px 2px', color: M.color } }, '· ' + f))))
     }
+    function ProjectsSidebar(props) {
+      const wide = !props || props.wide !== false
+      const [state, setState] = useState(null)
+      const [sessions, setSessions] = useState([])
+      const [q, setQ] = useState('')
+      const load = () => Promise.all([api('/dsh-projects/state'), api('/dsh-projects/sessions')])
+        .then(([st, ss]) => { if (st && !st.error) setState(st); if (ss && ss.items) setSessions(ss.items) })
+        .catch(() => {})
+      useEffect(() => { load(); const t = setInterval(load, 5000); return () => clearInterval(t) }, [])
+      const projectDirs = (state && state.projectDirs) || []
+      const isProjectCwd = (cwd) => Boolean(cwd) && projectDirs.some((d) => cwd === d || cwd.startsWith(d + '/'))
+      const openSession = (id) => { try { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId: id })); } catch {} location.reload() }
+      const newSession = () => { try { localStorage.removeItem('dsh.sessions.current'); } catch {} location.reload() }
+      const openProject = (p) => {
+        api('/dsh-projects/switch', { id: p.id }).then(() => { if (layoutService) layoutService.selectPanel('projects'); else location.reload() })
+      }
+      const recents = sessions
+        .filter((x) => x.cwd && !isProjectCwd(x.cwd))
+        .filter((x) => !q || (x.cwd || '').toLowerCase().includes(q.toLowerCase()))
+        .slice(0, 40)
+      if (!wide) {
+        return h('div', { style: { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, paddingTop: 10 } },
+          h('button', { title: '新会话', style: { ...btn(false), padding: '4px 8px' }, onClick: newSession }, '＋'),
+          ((state && state.projects) || []).slice(0, 8).map((p) => h('button', {
+            key: p.id, title: p.title,
+            style: { width: 26, height: 26, borderRadius: 8, border: 0, cursor: 'pointer', color: '#fff', background: p.id === (state && state.currentId) ? 'var(--dsw-alias-brand-primary, #4d6bfe)' : '#8b95a7', fontSize: 11, fontWeight: 700 },
+            onClick: () => { openProject(p); if (props && props.expandSidebar) props.expandSidebar() },
+          }, (p.title || '?').slice(0, 1).toUpperCase())),
+          h('button', { title: '展开侧栏', style: { ...btn(false), padding: '2px 6px' }, onClick: () => { if (props && props.expandSidebar) props.expandSidebar() } }, '»'))
+      }
+      const row = (label, sub, active, onClick) => h('div', { onClick, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 8, cursor: 'pointer', background: active ? 'var(--dsw-alias-bg-layer-2, #eef3ff)' : 'transparent' } },
+        h('div', { style: { width: 22, height: 22, borderRadius: 6, flex: 'none', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, color: '#fff', background: active ? 'var(--dsw-alias-brand-primary, #4d6bfe)' : '#8b95a7' } }, (label || '?').slice(0, 1).toUpperCase()),
+        h('div', { style: { minWidth: 0, flex: 1 } },
+          h('div', { style: { fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: active ? 600 : 450 } }, label || '(untitled)'),
+          sub ? h('div', { style: { fontSize: 10.5, color: M.color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, sub) : null))
+      const section = (title, children) => h('div', { style: { marginTop: 14 } },
+        h('div', { style: { fontSize: 10.5, fontWeight: 650, letterSpacing: '.5px', color: M.color, padding: '0 8px 4px' } }, title),
+        children)
+      return h('div', { style: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', padding: '8px 8px 12px', boxSizing: 'border-box', overflow: 'hidden', fontFamily: 'var(--dsw-font-family, -apple-system, sans-serif)' } },
+        h('div', { style: { display: 'flex', gap: 6, padding: '0 2px' } },
+          h('button', { style: { ...btn(true), flex: 1 }, onClick: newSession }, '＋ 新会话'),
+          h('button', { style: { ...btn(false), padding: '6px 9px' }, onClick: () => { if (layoutService) layoutService.selectPanel('projects') } }, 'Projects')),
+        h('input', { value: q, onChange: (e) => setQ(e.target.value), placeholder: '搜索会话 / 目录', style: { marginTop: 8, padding: '6px 9px', borderRadius: 8, border: B, background: 'transparent', color: 'var(--dsw-alias-label-primary)', fontSize: 12, outline: 'none' } }),
+        h('div', { style: { overflow: 'auto', flex: 1, marginTop: 2 } },
+          section('PINNED PROJECTS', ((state && state.projects) || []).map((p) => row(p.title, p.dir, state && p.id === state.currentId, () => openProject(p)))),
+          section('RECENTS', recents.length ? recents.map((x) => row((x.cwd || '').split('/').pop() || x.id.slice(0, 12), (x.running ? '运行中 · ' : '') + x.id.slice(0, 16), false, () => openSession(x.id))) : h('div', { style: { fontSize: 11.5, color: M.color, padding: '6px 8px' } }, '暂无个人会话（项目会话已收纳到项目中）'))),
+        h('div', { style: { padding: '8px 8px 0', fontSize: 10.5, color: M.color } }, '项目会话不出现在 Recents'))
+    }
     return {
       inject: ['slots'],
       apply(ctx) {
+        layoutService = ctx.get('layout') || null
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: 'projects', order: 20, label: 'Projects' }, Icon))
         ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'projects' }, ProjectsPage))
+        ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({ name: 'sidebar.workspaces' }, ProjectsSidebar))
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: 'threads', order: 21, label: 'Threads' }, Icon))
         ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'threads' }, ThreadsPage))
         ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({ name: 'conversation.session.header.actions', id: 'projects-threads', order: 40, label: 'Threads' }, ThreadsButton))

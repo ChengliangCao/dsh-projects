@@ -481,6 +481,13 @@ export function apply(ctx, config = {}) {
         } catch (err) { send(500, { error: String(err && err.message ? err.message : err) }) }
       })
     } })
+    server.register({ kind: 'exact', path: '/dsh-projects/sessions', handler: (req, res) => {
+      const send = (status, value) => { res.statusCode = status; res.setHeader('content-type', 'application/json; charset=utf-8'); res.end(JSON.stringify(value)) }
+      Promise.resolve()
+        .then(() => sc.list({}, new AbortController().signal))
+        .then((value) => send(200, { items: (value.items || []).map((x) => ({ id: x.sessionId, cwd: x.cwd || '', updatedAt: x.updatedAt, running: Boolean(x.running), blank: Boolean(x.blank), origin: x.origin || null })) }))
+        .catch((err) => send(500, { error: String(err && err.message ? err.message : err) }))
+    } })
     console.error('[projects] coordinator route registered')
   })
 
