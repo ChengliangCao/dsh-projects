@@ -15,6 +15,17 @@ window.__ModuleLoader__.load({
       return fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined)
         .then((r) => r.json())
     }
+    function useLiveState(setState, refresh) {
+      useEffect(() => {
+        refresh()
+        let es
+        try {
+          es = new EventSource('/dsh-projects/events')
+          es.onmessage = (e) => { try { const s = JSON.parse(e.data); if (s && !s.error) setState(s) } catch { /* ignore */ } }
+        } catch { /* fall back to refresh */ }
+        return () => { if (es) es.close() }
+      }, [])
+    }
     function openSessionByTitle(title) {
       const nodes = Array.from(document.querySelectorAll('button, [role="button"], a'))
       const target = nodes.find((n) => (n.textContent || '').includes(title))
@@ -41,7 +52,7 @@ window.__ModuleLoader__.load({
       const [coordMsg, setCoordMsg] = useState('')
       const [form, setForm] = useState({ title: '', goal: '', dir: '', instructions: '' })
       const refresh = () => api('/dsh-projects/state').then((s) => { if (s && !s.error) { setState(s); setError('') } else setError((s && s.error) || 'load failed') }).catch((e) => setError(String(e)))
-      useEffect(() => { refresh() }, [])
+      useLiveState(setState, refresh)
       const cur = state && state.current
       const create = () => {
         setCreateError('')
@@ -203,7 +214,7 @@ window.__ModuleLoader__.load({
       const [state, setState] = useState(null)
       const [tab, setTab] = useState('threads')
       const load = () => api('/dsh-projects/state').then((s) => { if (s && !s.error) setState(s) }).catch(() => {})
-      useEffect(() => { load() }, [])
+      useLiveState(setState, load)
       const cur = state && state.current
       const tabBtn = (key, label) => h('button', { onClick: () => setTab(key), style: { padding: '6px 12px', border: 0, borderBottom: '2px solid ' + (tab === key ? 'var(--dsw-alias-brand-primary, #4d6bfe)' : 'transparent'), background: 'transparent', color: tab === key ? 'var(--dsw-alias-label-primary)' : M.color, cursor: 'pointer', fontSize: 12.5 } }, label)
       return h('div', { style: { maxWidth: 1040, margin: '0 auto', padding: '32px 28px', fontFamily: 'var(--dsw-font-family, -apple-system, sans-serif)', color: 'var(--dsw-alias-label-primary)' } },

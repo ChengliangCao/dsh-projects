@@ -191,6 +191,19 @@ export function apply(ctx, config = {}) {
         json(res, 200, { currentId: r.currentId, projects: r.projects.map((p) => ({ id: p.id, title: p.title, goal: p.goal, dir: p.dir })), current: projectState(current) })
       } catch (err) { json(res, 500, { error: String(err && err.message ? err.message : err) }) }
     } })
+    webServer.register({ kind: 'exact', path: '/dsh-projects/events', handler: (req, res) => {
+      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache', connection: 'keep-alive' })
+      const send = () => {
+        try {
+          const r = readRegistry()
+          const current = r.projects.find((p) => p.id === r.currentId) || r.projects[0] || null
+          res.write('data: ' + JSON.stringify({ currentId: r.currentId, projects: r.projects.map((p) => ({ id: p.id, title: p.title, goal: p.goal, dir: p.dir })), current: projectState(current) }) + '\n\n')
+        } catch { /* ignore transient */ }
+      }
+      send()
+      const timer = setInterval(send, 2000)
+      req.on('close', () => clearInterval(timer))
+    } })
     webServer.register({ kind: 'exact', path: '/dsh-projects/create', handler: (req, res) => {
       let body = ''
       req.on('data', (chunk) => { body += chunk; if (body.length > 1e6) req.destroy() })

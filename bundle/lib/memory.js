@@ -5,6 +5,7 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
+import { homedir } from 'node:os'
 
 import { MemoryStore } from './memory-store.js'
 
@@ -66,22 +67,38 @@ const objectSchema = (properties, required = []) => ({
   additionalProperties: false,
 })
 
+function registryFile() {
+  return join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'projects-ui', 'registry.json')
+}
+function activeProjectDir(fallback) {
+  try {
+    const r = JSON.parse(readFileSync(registryFile(), 'utf8'))
+    const p = (r.projects || []).find((x) => x.id === r.currentId) || (r.projects || [])[0]
+    if (p && p.dir) return resolve(p.dir)
+  } catch { /* fall back */ }
+  return fallback
+}
+
 export function apply(ctx, config = {}) {
   const projectDir = resolve(config.projectDir || process.cwd())
-  const rootDir = resolve(config.rootDir || join(projectDir, '.memory'))
   const maxIndexBytes = config.maxIndexBytes ?? 4096
   const maxIndexLines = config.maxIndexLines ?? 200
-  const scopeDir = scopeDirFor(rootDir, projectDir)
-  mkdirSync(scopeDir, { recursive: true })
+  const store = new MemoryStore({ rootDir: join(projectDir, '.memory'), maxIndexBytes, maxIndexLines })
+  const activeScope = () => {
+    const dir = activeProjectDir(projectDir)
+    const scope = scopeDirFor(join(dir, '.memory'), dir)
+    mkdirSync(scope, { recursive: true })
+    return scope
+  }
+  mkdirSync(activeScope(), { recursive: true })
 
-  const store = new MemoryStore({ rootDir, maxIndexBytes, maxIndexLines })
 
   const systemPrompt = ctx.get('systemPrompt')
   if (systemPrompt && typeof systemPrompt.section === 'function') {
     systemPrompt.section({
       name: 'projects:memory',
       order: 4000,
-      text: () => readIndexSync(scopeDir, maxIndexBytes, maxIndexLines),
+      text: () => { try { return readIndexSync(activeScope(), maxIndexBytes, maxIndexLines) } catch { return '' } },
     })
   }
 
@@ -110,7 +127,7 @@ export function apply(ctx, config = {}) {
       render: (_a, v) => text(JSON.stringify(v)),
     },
     execute: async (args) => {
-      const r = await store.write(scopeDir, args)
+      const r = await store.write(activeScope(), args)
       return { name: r.record.name, indexOverLimit: r.indexOverLimit, indexBytes: r.indexBytes }
     },
   })
@@ -124,7 +141,7 @@ export function apply(ctx, config = {}) {
       render: (_a, v) => text(JSON.stringify(v)),
     },
     execute: async (args) => {
-      const hits = await store.search(scopeDir, args.query)
+      const hits = await store.search(activeScope(), args.query)
       return hits.map((r) => ({ name: r.name, type: r.type, description: r.description }))
     },
   })
@@ -138,7 +155,7 @@ export function apply(ctx, config = {}) {
       render: (_a, v) => text(JSON.stringify(v)),
     },
     execute: async () => {
-      const list = await store.list(scopeDir)
+      const list = await store.list(activeScope())
       return list.map((r) => ({ name: r.name, type: r.type, description: r.description, modified: r.modified }))
     },
   })
@@ -152,7 +169,7 @@ export function apply(ctx, config = {}) {
       render: (_a, v) => text(v.content ?? ''),
     },
     execute: async (args) => {
-      const rec = await store.read(scopeDir, args.name)
+      const rec = await store.read(activeScope(), args.name)
       return rec ? { name: rec.name, content: rec.content } : { name: args.name, content: '（未找到）' }
     },
   })
