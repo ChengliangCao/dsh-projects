@@ -224,13 +224,13 @@ window.__ModuleLoader__.load({
             h('h1', { style: { margin: 0, fontSize: 23 } }, 'Threads'),
             h('p', { style: { margin: '4px 0 0', fontSize: 12.5, color: M.color } }, (cur ? cur.title + ' · ' : '') + '独立会话 + git worktree 隔离；资料在 Library。')),
           h('div', { style: { marginLeft: 'auto' } }, h('button', { style: btn(false), onClick: load }, '刷新'))),
-        h('div', { style: { display: 'flex', gap: 4, borderBottom: B, marginBottom: 12 } }, tabBtn('threads', 'Threads'), tabBtn('library', 'Library')),
+        h('div', { style: { display: 'flex', gap: 4, borderBottom: B, marginBottom: 12 } }, tabBtn('threads', 'Threads'), tabBtn('library', 'Library'), tabBtn('scheduled', 'Scheduled')),
         !cur ? h('div', { style: { fontSize: 12, color: M.color } }, '加载项目…') :
           tab === 'threads'
             ? h('div', { style: card },
-                h('div', { style: { display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' } }, chip('线程 ' + (cur.threads || []).length), cur.counts && cur.counts.review ? chip('待收 ' + cur.counts.review) : null, cur.counts && cur.counts.failed ? chip('需要你 ' + cur.counts.failed) : null),
+                h('div', { style: { display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' } }, chip('线程 ' + (cur.threads || []).length), cur.counts && cur.counts.waiting ? chip('Waiting on you ' + cur.counts.waiting, 'rgba(210,153,34,.18)') : null, cur.counts && cur.counts.review ? chip('待收 ' + cur.counts.review) : null, cur.counts && cur.counts.failed ? chip('需要你 ' + cur.counts.failed, 'rgba(248,81,73,.15)') : null),
                 (cur.threads || []).length === 0 ? h('div', { style: { fontSize: 12, color: M.color } }, '还没有线程，回项目对话让 coordinator 派一个。') :
-                  cur.threads.map((t) => h('div', { key: t.id, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 2px', borderTop: B } },
+                  [...cur.threads].sort((a, b) => ({ waiting: 0, failed: 0, working: 1, idle: 1, done: 1, resolved: 2 }[a.status] ?? 1) - ({ waiting: 0, failed: 0, working: 1, idle: 1, done: 1, resolved: 2 }[b.status] ?? 1)).map((t) => h('div', { key: t.id, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 2px', borderTop: B } },
                     h('span', { style: { width: 7, height: 7, borderRadius: 99, background: t.status === 'done' ? '#3fb950' : t.status === 'resolved' ? '#8b949e' : '#4d8dff' } }),
                     h('div', { style: { flex: 1, minWidth: 0 } },
                       h('div', { style: { fontSize: 13, fontWeight: 550 } }, t.title),
@@ -238,12 +238,15 @@ window.__ModuleLoader__.load({
                     h('button', { style: { ...btn(false), padding: '2px 8px' }, onClick: () => openSessionByTitle(t.title) }, '打开'),
                     t.status === 'resolved' ? null : h('button', { style: { ...btn(false), padding: '2px 8px' }, onClick: () => api('/dsh-projects/thread-resolve', { id: t.id }).then(load) }, '收尾')))
             )
-            : h('div', { style: card },
+            : tab === 'library' ? h('div', { style: card },
                 h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 } },
                   h('div', { style: { fontSize: 12, color: M.color, flex: 1 } }, 'Library · ' + cur.libraryCount + ' 文件 / ' + (cur.library.folders || []).length + ' 文件夹'),
                   h('button', { style: { ...btn(false), padding: '2px 8px' }, onClick: () => { const name = window.prompt('新建文件夹名称'); if (name) api('/dsh-projects/library-mkdir', { folder: name }).then(load) } }, '＋ 文件夹')),
                 (cur.library.folders || []).map((f) => h('div', { key: f, style: { fontSize: 12, padding: '4px 2px' } }, '📁 ' + f)),
-                (cur.library.files || []).map((f) => h('div', { key: f, style: { fontSize: 12, padding: '3px 2px', color: M.color } }, '· ' + f))))
+                (cur.library.files || []).map((f) => h('div', { key: f, style: { fontSize: 12, padding: '3px 2px', color: M.color } }, '· ' + f)))
+            : h('div', { style: card },
+                h('div', { style: { fontSize: 12, color: M.color } }, 'Scheduled · 暂无定时任务'),
+                h('div', { style: { fontSize: 11, color: M.color, marginTop: 6 } }, '计划支持：每日站会线程、周报、自动收尾。')))
     }
     function ProjectsSidebar(props) {
       const wide = !props || props.wide !== false
