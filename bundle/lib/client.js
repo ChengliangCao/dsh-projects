@@ -64,14 +64,17 @@ window.__ModuleLoader__.load({
         }).catch((e) => setCreateError(String(e)))
       }
       const switchTo = (id) => api('/dsh-projects/switch', { id }).then(refresh).catch((e) => setError(String(e)))
-      const openCoordinator = () => {
-        const pid = opened || (state && state.currentId)
-        setCoordMsg('正在创建协调者会话…')
-        api('/dsh-projects/coordinator', { projectId: pid }).then((r) => {
-          if (r && r.error) { setCoordMsg('失败：' + r.error); return }
-          setCoordMsg('协调者会话已就绪：' + r.sessionId + '（在左侧会话列表/Threads 面板打开）')
-        }).catch((e) => setCoordMsg('失败：' + e))
+      const enterProject = (pid) => {
+        setCoordMsg('正在进入项目对话…')
+        api('/dsh-projects/switch', { id: pid })
+          .then(() => api('/dsh-projects/coordinator', { projectId: pid }))
+          .then((r) => {
+            if (r && r.sessionId) { try { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId: r.sessionId })) } catch {} location.reload(); return }
+            setCoordMsg('失败：' + ((r && r.error) || 'no session'))
+          })
+          .catch((e) => setCoordMsg('失败：' + e))
       }
+      const openCoordinator = () => enterProject(opened || (state && state.currentId))
       return h('div', { style: { maxWidth: 1040, margin: '0 auto', padding: '32px 28px', fontFamily: 'var(--dsw-font-family, -apple-system, sans-serif)', color: 'var(--dsw-alias-label-primary)' } },
         h('div', { style: { display: 'flex', alignItems: 'flex-end', gap: 12, marginBottom: 18 } },
           h('div', null,
@@ -79,6 +82,7 @@ window.__ModuleLoader__.load({
             h('p', { style: { margin: '4px 0 0', fontSize: 12.5, color: M.color } }, '一个长期协调会话 = Coordinator；每个任务一个独立线程；资料与记忆按项目共享。')),
           h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 8 } },
             h('button', { style: btn(false), onClick: refresh }, '刷新'),
+            h('button', { style: btn(false), onClick: () => { if (layoutService) layoutService.selectPanel('threads') } }, 'Threads'),
             h('button', { style: btn(true), onClick: () => setModal(true) }, '＋ 新建项目'))),
         error ? h('div', { style: { fontSize: 11.5, color: 'var(--dsw-alias-state-error-primary, #f85149)', marginBottom: 10 } }, error) : null,
         opened && state && state.current ? h('div', { style: { ...card, marginBottom: 12, borderColor: 'var(--dsw-alias-brand-primary, #4d6bfe)' } },
@@ -95,7 +99,7 @@ window.__ModuleLoader__.load({
         state ? h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 12 } },
           state.projects.map((p) => h('div', {
             key: p.id,
-            onClick: () => { switchTo(p.id); setOpened(p.id); },
+            onClick: () => { setOpened(p.id); enterProject(p.id); },
             style: { ...card, cursor: 'pointer', borderColor: p.id === state.currentId ? 'var(--dsw-alias-brand-primary, #4d6bfe)' : B },
           },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: 9 } },
@@ -107,7 +111,8 @@ window.__ModuleLoader__.load({
             h('div', { style: { display: 'flex', gap: 6, marginTop: 8 } },
               h('button', { style: { ...btn(false), padding: '2px 7px' }, onClick: (e) => { e.stopPropagation(); api('/dsh-projects/lifecycle', { id: p.id, action: p.status === 'paused' ? 'resume' : 'pause' }).then(refresh) } }, p.status === 'paused' ? '继续' : '暂停'),
               h('button', { style: { ...btn(false), padding: '2px 7px' }, onClick: (e) => { e.stopPropagation(); api('/dsh-projects/lifecycle', { id: p.id, action: p.status === 'archived' ? 'unarchive' : 'archive' }).then(refresh) } }, p.status === 'archived' ? '取消归档' : '归档'),
-              p.status && p.status !== 'active' ? chip(p.status) : null))),
+              p.status && p.status !== 'active' ? chip(p.status) : null,
+              h('button', { style: { ...btn(false), padding: '2px 8px' }, onClick: (e) => { e.stopPropagation(); enterProject(p.id) } }, '进入项目 →')))),
           h('div', { onClick: () => setModal(true), style: { ...card, borderStyle: 'dashed', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 104, color: M.color, cursor: 'pointer', background: 'transparent' } }, '＋ 新建项目'))
           : h('div', { style: { fontSize: 12, color: M.color } }, '加载项目…'),
         cur ? h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 14 } },
@@ -262,7 +267,10 @@ window.__ModuleLoader__.load({
       const openSession = (id) => { try { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId: id })); } catch {} location.reload() }
       const newSession = () => { try { localStorage.removeItem('dsh.sessions.current'); } catch {} location.reload() }
       const openProject = (p) => {
-        api('/dsh-projects/switch', { id: p.id }).then(() => { if (layoutService) layoutService.selectPanel('projects'); else location.reload() })
+        api('/dsh-projects/switch', { id: p.id })
+          .then(() => api('/dsh-projects/coordinator', { projectId: p.id }))
+          .then((r) => { if (r && r.sessionId) { try { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId: r.sessionId })) } catch {} location.reload() } })
+          .catch(() => {})
       }
       const recents = sessions
         .filter((x) => x.cwd && !isProjectCwd(x.cwd))
@@ -303,7 +311,6 @@ window.__ModuleLoader__.load({
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: 'projects', order: 20, label: 'Projects' }, Icon))
         ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'projects' }, ProjectsPage))
         ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({ name: 'sidebar.workspaces' }, ProjectsSidebar))
-        ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({ name: 'sidebar.panellist', id: 'threads', order: 21, label: 'Threads' }, Icon))
         ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'threads' }, ThreadsPage))
         ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({ name: 'conversation.session.header.actions', id: 'projects-threads', order: 40, label: 'Threads' }, ThreadsButton))
       },

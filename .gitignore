@@ -25,3 +25,6 @@ pnpm-store/
 
 # research render outputs
 papers/
+
+# release artifacts
+dist/
